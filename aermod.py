@@ -366,9 +366,9 @@ class post:
         
         while True:
             try:
-                p.getPOSTfileMetaData()
-                p.getPOSTfileHeader()
-                p.getPOSTfileData()
+                self.getPOSTfileMetaData()
+                self.getPOSTfileHeader()
+                self.getPOSTfileData()
             except:
                 break
         
@@ -429,7 +429,7 @@ class post:
                  ,self.building_vertices[(building, story)].Y - origin.Y
                  ,color=kwargs.get("color", "white")
                  ,linewidth=kwargs.get("linewidth", 0.4)
-                 ,alpha=1.00
+                 ,alpha=kwargs.get("alpha", 1.00)
                  ,ec="black"
                  )
     
@@ -470,31 +470,30 @@ class post:
         import matplotlib.pyplot as plt
         from scipy.interpolate import griddata
         
-        concs = self.POSTdata[(r_type, r_form, source_group)][:,kwargs.get("slice", 0)] * kwargs.get("scalar", 1.0)
+        if kwargs.get("exclude_flagpole_receptors", False):
+            if self.DEBUG: print "DEBUG: removing flagpole receptors"
+            receptor_array = numpy.column_stack((self.receptors.X[self.receptors.Z==0]
+                                               ,self.receptors.Y[self.receptors.Z==0]
+                                               ,self.receptors.Z[self.receptors.Z==0]))
+        else:
+            receptor_array = numpy.column_stack((self.receptors.X, self.receptors.Y, self.receptors.Z))
         
-        receptor_array = numpy.column_stack((self.receptors.X, self.receptors.Y, self.receptors.Z))
-        receptors = point(self.receptors.num
+        receptor_num = len(receptor_array)
+        receptors = point(receptor_num
                          ,XYZs=receptor_array)
+        
+        if kwargs.get("exclude_flagpole_receptors", False):
+            if self.DEBUG: print "DEBUG: removing flagplot data"
+            concs = self.POSTdata[(r_type, r_form, source_group)][:,kwargs.get("slice", 0)][self.receptors.Z==0] * kwargs.get("scalar", 1.0)
+        else:
+            concs = self.POSTdata[(r_type, r_form, source_group)][:,kwargs.get("slice", 0)] * kwargs.get("scalar", 1.0)
         
         # define grid.
         
-        if kwargs.get("exclude_flagpole_receptors", False):
-            if self.DEBUG: print "DEBUG: removing flagpole receptors"
-            x_range = receptors.X[receptors.Z==0].max() - receptors.X[receptors.Z==0].min()
-            y_range = receptors.Y[receptors.Z==0].max() - receptors.Y[receptors.Z==0].min()
-            xi = numpy.linspace(receptors.X[receptors.Z==0].min()
-                               ,receptors.X[receptors.Z==0].max()
-                               ,round(receptors.num**0.85)
-                               )
-            yi = numpy.linspace(receptors.Y[receptors.Z==0].min()
-                               ,receptors.Y[receptors.Z==0].max()
-                               ,round(receptors.num**0.85)
-                               )
-        else:
-            x_range = receptors.X.max() - receptors.X.min()
-            y_range = receptors.Y.max() - receptors.Y.min()
-            xi = numpy.linspace(receptors.X.min(), receptors.X.max(), round(receptors.num**0.85))
-            yi = numpy.linspace(receptors.Y.min(), receptors.Y.max(), round(receptors.num**0.85))
+        x_range = receptors.X.max() - receptors.X.min()
+        y_range = receptors.Y.max() - receptors.Y.min()
+        xi = numpy.linspace(receptors.X.min(), receptors.X.max(), round(receptors.num**0.85))
+        yi = numpy.linspace(receptors.Y.min(), receptors.Y.max(), round(receptors.num**0.85))
         
         if kwargs.get("colorslevels", None):
             levels = [level for level, color, label in kwargs["colorslevels"]]
@@ -504,14 +503,9 @@ class post:
         distance_from_origin = kwargs.get("distance_from_origin", max(x_range/2, y_range/2))
         if self.DEBUG: print "DEBUG: distance_from_origin -", distance_from_origin
         
-        if kwargs.get("exclude_flagpole_receptors", False):
-            origin = point(1)
-            origin.X = (receptors.X[receptors.Z==0].max() + receptors.X[receptors.Z==0].min())/2
-            origin.Y = (receptors.Y[receptors.Z==0].max() + receptors.Y[receptors.Z==0].min())/2
-        else:
-            origin = point(1)
-            origin.X = (receptors.X.max() + receptors.X.min())/2
-            origin.Y = (receptors.Y.max() + receptors.Y.min())/2
+        origin = point(1)
+        origin.X = (receptors.X.max() + receptors.X.min())/2
+        origin.Y = (receptors.Y.max() + receptors.Y.min())/2
         
         # instantiate figure
         if kwargs.get("nocolorbar", False):
@@ -521,18 +515,11 @@ class post:
         
         # grid the data.
         
-        if kwargs.get("exclude_flagpole_receptors", False):
-            zi = griddata((receptors.X[receptors.Z==0] - origin.X, receptors.Y[receptors.Z==0] - origin.Y)
-                         ,concs[receptors.Z==0]
-                         ,(xi[None,:] - origin.X, yi[:,None] - origin.Y)
-                         ,method=kwargs.get("interpolation_method", "linear")
-                         )
-        else:
-            zi = griddata((receptors.X - origin.X, receptors.Y - origin.Y)
-                         ,concs
-                         ,(xi[None,:] - origin.X, yi[:,None] - origin.Y)
-                         ,method=kwargs.get("interpolation_method", "linear")
-                         )
+        zi = griddata((receptors.X - origin.X, receptors.Y - origin.Y)
+                     ,concs
+                     ,(xi[None,:] - origin.X, yi[:,None] - origin.Y)
+                     ,method=kwargs.get("interpolation_method", "linear")
+                     )
         
         if kwargs.get("contours", 0):
             CS = plt.contour(xi - origin.X, yi - origin.Y, zi
@@ -625,33 +612,18 @@ class post:
         
         # plot data points.
         if receptor_size:
-            if kwargs.get("exclude_flagpole_receptors", False):
-                scat = plt.scatter(receptors.X[receptors.Z==0] - origin.X
-                                  ,receptors.Y[receptors.Z==0] - origin.Y
-                                  ,marker=kwargs.get("receptor_type", "o")
-                                  ,c=(1,1,1,0) # in place of marker_style which I can't get to work
-                                  ,s=receptor_size
-                                  ,zorder=10
-                                  )
-            else:
-                scat = plt.scatter(receptors.X - origin.X
-                                  ,receptors.Y - origin.Y
-                                  ,marker=kwargs.get("receptor_type", "o")
-                                  ,c=(1,1,1,0) # in place of marker_style which I can't get to work
-                                  ,s=receptor_size
-                                  ,zorder=10
-                                  )
+            scat = plt.scatter(receptors.X - origin.X
+                              ,receptors.Y - origin.Y
+                              ,marker=kwargs.get("receptor_type", "o")
+                              ,c=(1,1,1,0) # in place of marker_style which I can't get to work
+                              ,s=receptor_size
+                              ,zorder=10
+                              )
         if kwargs.get("max_plot", True):
-            if kwargs.get("exclude_flagpole_receptors", False):
-                max_point = point(1
-                                 ,Xs=numpy.array([receptors.X[receptors.Z==0][concs[receptors.Z==0].argmax()] - origin.X])
-                                 ,Ys=numpy.array([receptors.Y[receptors.Z==0][concs[receptors.Z==0].argmax()] - origin.Y])
-                                 )
-            else:
-                max_point = point(1
-                                 ,Xs=numpy.array([receptors.X[receptors.Z==0][concs[receptors.Z==0].argmax()] - origin.X])
-                                 ,Ys=numpy.array([receptors.Y[receptors.Z==0][concs[receptors.Z==0].argmax()] - origin.Y])
-                                 )
+            max_point = point(1
+                             ,Xs=numpy.array([receptors.X[concs.argmax()] - origin.X])
+                             ,Ys=numpy.array([receptors.Y[concs.argmax()] - origin.Y])
+                             )
             if self.DEBUG: 
                 print "DEBUG: max plot:"
                 print "    X =", max_point.X[0]
@@ -675,10 +647,16 @@ class post:
                        ,zorder=10
                        )
         
+        if kwargs.get("exclude_flagpole_receptors", False):
+            if self.DEBUG: print "DEBUG: transparent buildings"
+            building_color = "#FFFFFF00"
+        else:
+            building_color = "white"
         if kwargs.get("buildings", False):
             for name, story in sorted(self.building_vertices.keys()):
                 self.draw_building(name, story, plt, origin=origin
-                                  ,color=kwargs.get("building_color", "white")
+                                  ,color=kwargs.get("building_color", building_color)
+                                  #,alpha=building_alpha
                                   ,linewidth=kwargs.get("building_linewidth", 0.4)
                                   )
         
@@ -709,89 +687,4 @@ class post:
         
         plt.savefig(kwargs.get("filename", "aermod.png"))
         plt.close("all")
-    
-if __name__ == "__main__":
-    
-    # test fail
-    filename = "test"
-    try:
-        p = post(filename, vars_index=vars_indices["post"], DEBUG=True)
-    except IOError:
-        print "--> successful IOError call for missing file"
-    except:
-        print "--> UNPLANNED ERROR"
-        raise
-    
-    # test success
-    filename  = "temp.POST" 
-    directory = "."
-    vars = "post"
-    r_type = "1-HR"
-    r_form = "CONCURRENT"
-    c_vars = "24h-pm-fine"
-    buildings=False
-    
-    filename  = "SUNYESF_RSG_Modified_0519.GRF" 
-    #filename  = "SUNYESF_RSG_Modified_PELLET.POST" 
-    building_fn = "SUNYESF_RSG_Modified.PIP"
-    directory = "../modeling output"
-    #r_type = "24-HR"
-    r_form = "HIGH 1ST HIGH"
-    c_vars = "24h-pm-fine"
-    vars = "grf"
-    buildings=True
-    
-    try:
-        p = post(filename
-                ,directory=directory
-                ,vars_index=vars_indices[vars]
-                ,verbose=False
-                ,DEBUG=True
-                )
-        print "--> successful file import"
-    except:
-        print "--> UNPLANNED ERROR on file import"
-    
-    # process file
-    p.processPOSTData()
-    
-    # add buildings
-    if buildings:
-        p.add_buildings(building_fn
-                       ,directory=directory
-                       )
-    
-    # make plotfile for one hour
-    print "Preparing plots..."
-    for r_type, r_form, source_group in p.datatypes:
-        for slice in range(p.POSTdata[(r_type, r_form, source_group)].shape[1]):
-            p.gridplot(r_type     # which datatype?
-                      ,r_form     # what's the form of the data??
-                      ,source_group      # source group
-                      ,slice=slice          # slice
-                      ,colorslevels=color_dicts[c_vars]
-                      ,distance_from_origin=600
-                      #,contours=0.05
-                      ,receptor_size=0.05
-                      ,receptor_type="."
-                      ,max_plot=0#30
-                      ,tickinterval=100
-                      #,noticks=True
-                      ,labelsize=8
-                      #,labelgap=8
-                      #,nocolorbar=True
-                      ,scale_decimals="%0.0f"
-                      #,colorbar_spacing="uniform"
-                      #,interpolation_method="nearest"
-                      ,interpolation_method="cubic"
-                      ,max_textsize=8
-                      ,buildings=buildings
-                      ,exclude_flagpole_receptors=True
-                      ,sources=8
-                      ,scalar=1.0
-                      ,pollutant="PM2.5"
-                      ,title_size=10
-                      ,filename="out/SUNYESF_"+"{0:05}_".format(slice)+("_".join([r_type,r_form,source_group])).replace(" ", "_")+".png"
-                      )
-    print "--> plot(s) creation successful"
     
