@@ -3,10 +3,10 @@
 
 # docstring metadata
 __author__ = "Leiran Biton"
-__copyright__ = "Copyright 2015, NESCAUM"
+__copyright__ = "Copyright 2015"
 __credits__ = []
 __license__ = "GPL"
-__version__ = "0.02"
+__version__ = "0.03"
 __maintainer__ = "Leiran Biton"
 __email__ = "lbiton@nescaum.org"
 __status__ = "Production"
@@ -438,7 +438,6 @@ class post:
                 ,r_form # datatype key for POSTdata
                 ,source_group
                 ,levels=[0,10,20,30,40,50,60,70,80,90,100,150,200,250,300]
-                ,receptor_size=12
                 ,**kwargs
                 ):
         """creates an individual grid plot based on input concentration array
@@ -464,6 +463,7 @@ class post:
         colorslevels - colors and levels
         scalar - multiplier for concentration data
         exclude_flagpole_receptors - Default = False, set to True to exclude flagpole receptors
+        add_background - Default value = 0.0
         """
         import matplotlib
         import matplotlib.ticker
@@ -484,9 +484,9 @@ class post:
         
         if kwargs.get("exclude_flagpole_receptors", False):
             if self.DEBUG: print "DEBUG: removing flagplot data"
-            concs = self.POSTdata[(r_type, r_form, source_group)][:,kwargs.get("slice", 0)][self.receptors.Z==0] * kwargs.get("scalar", 1.0)
+            concs = self.POSTdata[(r_type, r_form, source_group)][:,kwargs.get("slice", 0)][self.receptors.Z==0] * kwargs.get("scalar", 1.0) + kwargs.get("add_background", 0.0)
         else:
-            concs = self.POSTdata[(r_type, r_form, source_group)][:,kwargs.get("slice", 0)] * kwargs.get("scalar", 1.0)
+            concs = self.POSTdata[(r_type, r_form, source_group)][:,kwargs.get("slice", 0)] * kwargs.get("scalar", 1.0) + kwargs.get("add_background", 0.0)
         
         # define grid.
         
@@ -611,12 +611,12 @@ class post:
             plt.yticks([])
         
         # plot data points.
-        if receptor_size:
+        if kwargs.get("receptor_size", 12):
             scat = plt.scatter(receptors.X - origin.X
                               ,receptors.Y - origin.Y
                               ,marker=kwargs.get("receptor_type", "o")
                               ,c=(1,1,1,0) # in place of marker_style which I can't get to work
-                              ,s=receptor_size
+                              ,s=kwargs.get("receptor_size", 12)
                               ,zorder=10
                               )
         if kwargs.get("max_plot", True):
@@ -646,8 +646,18 @@ class post:
                        ,s=kwargs.get("max_plot", 50)
                        ,zorder=10
                        )
-        
-        if kwargs.get("exclude_flagpole_receptors", False):
+        if kwargs.get("add_background", False):
+            plt.annotate('Includes background\nconcentration: '+ kwargs.get("scale_decimals","%0.0f") % kwargs.get("add_background", 0.0)
+                        ,(1.05, 0)
+                        ,(0, -32 + (kwargs.get("max_textsize", 10)))
+                        ,xycoords='axes fraction'
+                        ,ha="left"
+                        ,va="top"
+                        ,textcoords='offset points'
+                        ,size=kwargs.get("max_textsize", 10)
+                        )
+            
+        if kwargs.get("transparent_buildings", False):
             if self.DEBUG: print "DEBUG: transparent buildings"
             building_color = "#FFFFFF00"
         else:
@@ -656,7 +666,6 @@ class post:
             for name, story in sorted(self.building_vertices.keys()):
                 self.draw_building(name, story, plt, origin=origin
                                   ,color=kwargs.get("building_color", building_color)
-                                  #,alpha=building_alpha
                                   ,linewidth=kwargs.get("building_linewidth", 0.4)
                                   )
         
