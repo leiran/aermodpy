@@ -1,5 +1,10 @@
 #!/usr/bin/env python
-"""Python interface to AERMOD modeling system files."""
+"""Python interface to AERMOD modeling system files.
+
+design notes:
++ Bug on POST processing; only processes 996 hours
+   - proposed fix: in-place averaging, discard hourly data
+"""
 
 # docstring metadata
 __author__ = "Leiran Biton"
@@ -8,7 +13,7 @@ __credits__ = []
 __license__ = "GPL"
 __version__ = "0.03"
 __maintainer__ = "Leiran Biton"
-__email__ = "lbiton@nescaum.org"
+__email__ = "leiranbiton@gmail.com"
 __status__ = "Production"
 
 # import statements
@@ -60,28 +65,67 @@ color_dicts = {
              ,( 40, "#FFA812", "40")
              ,( 45, "#FF7F00", "45")
              ,( 50, "#FF6700", "50")
-             ,( 55, "#CC5500", "55")
+             ,( 55, "#ff3838", "55")
              ,( 60, "red", "60")
+             )
+,"1h-pm-fine":   (
+              (  0, "#FFFFFF", "  0")
+             ,(1.2, "#dbfadf", "")
+             ,(  4, "#c5f7cb", "")
+             ,(  9, "#8aef98", "")
+             ,( 12, "#fefebe", " 12 (Annual NAAQS)")
+             ,( 15, "#FDFD96", " ")
+             ,( 20, "#FFFF00", " 20")
+             ,( 25, "#FFF700", " ")
+             ,( 30, "#FFEF00", "")
+             ,( 35, "#FFB347", " 35 (24H NAAQS)")
+             ,( 40, "#FFA812", "")
+             ,( 45, "#FF7F00", "")
+             ,( 50, "#FF6700", " ")
+             ,( 55, "#ff3838", " 55")
+             ,( 70, "#fa0000", " ")
+             ,( 80, "#d60000", " ")
+             ,( 90, "#c20000", " ")
+             ,(100, "#b30000", "100")
+             ,(110, "#940000", "110")
              )
 ,"annual-pm-fine":   (
               (  0, "#FFFFFF", " ")
-             ,(0.3, "#fbfdfe", " 0.3 (SIL)")
-             ,(  2, "#f2f9fc", " 2")
-             ,(  4, "#eaf5fb", " 4 (increment)")
+             ,(0.3, "#dbfadf", " 0.3 (SIL)")
+             ,(  2, "#c5f7cb", " 2")
+             ,(  4, "#8aef98", " 4 (increment)")
              ,(  6, "#fefebe", " 6")
              ,(  8, "#FDFD96", " 8")
              ,( 10, "#FFF700", "10")
              ,( 12, "#FFA812", "12 (NAAQS)")
              ,( 14, "#FF8C00", "14")
              ,( 16, "#FF6700", "16")
-             ,( 18, "red", "18")
+             ,( 18, "#ff3838", "18")
              ,( 20, "#CE1620", "20")
              ,( 22, "#B31B1B", "22")
+             )
+,"1h-no2":   (
+              (  0, "#FFFFFF", "  0")
+             ,( 15, "#dbfadf", "")
+             ,( 30, "#c5f7cb", " 30")
+             ,( 45, "#8aef98", "")
+             ,( 53, "#fefebe", " 53 AQI=Moderate")
+             ,( 70, "#FDFD96", "")
+             ,( 80, "#FFF700", " 80")
+             ,( 90, "#FFEF00", "")
+             ,(100, "#FFB347", "100 (NAAQS)")
+             ,(115, "#FFA812", "115")
+             ,(130, "#FF7F00", "130")
+             ,(150, "#FF6700", "150")
+             ,(200, "#CC5500", "200")
+             ,(360, "red", "360 AQI=Unhealthy")
              )
               }
 
 pollutant_dict = {"PM2.5" : (r'$\mathregular{PM_{2.5}}$', r'$\mu\mathregular{g/m^3}$')
                  ,"CO"    : ("Carbon Monoxide", "ppm")
+                 ,"NO2"   : (r'$\mathregular{NO_{2}}$', "ppb")
+                 ,"SO2"   : (r'$\mathregular{SO_{2}}$', "ppb")
                  }
 
 vars_indices = {
@@ -116,6 +160,57 @@ vars_indices = {
 
                }
 
+#functions
+def ordinal(value):
+    """
+    Converts zero or a *postive* integer (or their string 
+    representations) to an ordinal value.
+    
+    from: http://code.activestate.com/recipes/576888-format-a-number-as-an-ordinal/
+    
+    >>> for i in range(1,13):
+    ...     ordinal(i)
+    ...     
+    u'1st'
+    u'2nd'
+    u'3rd'
+    u'4th'
+    u'5th'
+    u'6th'
+    u'7th'
+    u'8th'
+    u'9th'
+    u'10th'
+    u'11th'
+    u'12th'
+    
+    >>> for i in (100, '111', '112',1011):
+    ...     ordinal(i)
+    ...     
+    u'100th'
+    u'111th'
+    u'112th'
+    u'1011th'
+    
+    """
+    try:
+        value = int(value)
+    except ValueError:
+        return value
+
+    if value % 100//10 != 1:
+        if value % 10 == 1:
+            ordval = u"%d%s" % (value, "st")
+        elif value % 10 == 2:
+            ordval = u"%d%s" % (value, "nd")
+        elif value % 10 == 3:
+            ordval = u"%d%s" % (value, "rd")
+        else:
+            ordval = u"%d%s" % (value, "th")
+    else:
+        ordval = u"%d%s" % (value, "th")
+
+    return ordval
 
 class point(object):
     def __init__(self, num, **kwargs):
@@ -360,6 +455,8 @@ class post:
         self.POSTdata[(r_type, r_form, source_group)] *= kwargs.get("scalar", 1.0)
         
     def processPOSTData(self
+                       ,ranked=0
+                       ,annual=False
                        ):
         """Process stored POST file data"""
         if self.verbose: print "--> processing open data file"
@@ -369,31 +466,58 @@ class post:
                 self.getPOSTfileMetaData()
                 self.getPOSTfileHeader()
                 self.getPOSTfileData()
+                if ranked:
+                    for (r_type, r_form, source_group) in self.datatypes:
+                        self.rankPOSTData(r_type
+                                         ,r_form
+                                         ,source_group
+                                         ,n=ranked
+                                         ,annual=annual
+                                         )
             except:
                 break
         
-    
+    def rankPOSTData(self
+                    ,r_type
+                    ,r_form
+                    ,source_group
+                    ,n=1
+                    ,annual=False
+                    ):
+        """Compress stored POST file data to the top n values."""
+        if self.verbose: print "--> ranking POST data"
+        
+        if "rankedPOSTdata" not in self.__dict__:
+            self.rankedPOSTdata = {}
+        
+        self.rankedPOSTdata[(r_type, r_form, source_group)
+                           ] = self.POSTdata[(r_type, r_form, source_group)
+                                            ].__copy__()
+        self.rankedPOSTdata[(r_type, r_form, source_group)].sort(axis=1)
+        self.rankedPOSTdata[(r_type, r_form, source_group)] = \
+            self.rankedPOSTdata[(r_type, r_form, source_group)][:,-n:]
+        
     def getPOSTfileData(self
                        ,h=0
                        ):
         """Get data from POSTfile, process for average number of hours"""
         if self.verbose: print "--> retrieving data"
-        if self.DEBUG: print "DEBUG:", self.receptors.num, "receptors" 
+        #if self.DEBUG: print "DEBUG:", self.receptors.num, "receptors" 
         
         for r in range(self.receptors.num):
             line = self.POSTfile.next()
             if r == 0:
-                if self.DEBUG: print "DEBUG: receptor 0 for hour", h
+                #if self.DEBUG: print "DEBUG: receptor 0 for hour", h
                 if h == 0:
                     self.POSTdata[self.datatypes[-1]] = numpy.empty([self.receptors.num, 1])
-                    if self.DEBUG: print "DEBUG: array successfully created at hour", h
+                    #if self.DEBUG: print "DEBUG: array successfully created at hour", h
                 else:
                     self.POSTdata[self.datatypes[-1]] = \
                         numpy.append(self.POSTdata[self.datatypes[-1]]
                                     ,numpy.empty([self.receptors.num, 1])
                                     ,axis=1
                                     )
-                    if self.DEBUG: print "DEBUG: array successfully expanded at hour", h
+                    #if self.DEBUG: print "DEBUG: array successfully expanded at hour", h
             
             # decode data
             data4hour, dt = self.decode_data(line)
@@ -401,7 +525,7 @@ class post:
             # build datetime list
             if r == 0:
                 self.datetimes.append(dt)
-                if self.DEBUG: print "DEBUG:", "processing for", dt
+                #if self.DEBUG: print "DEBUG:", "processing for", dt
             
             # populate receptor location values
             if h == 0:
@@ -464,6 +588,7 @@ class post:
         scalar - multiplier for concentration data
         exclude_flagpole_receptors - Default = False, set to True to exclude flagpole receptors
         add_background - Default value = 0.0
+        ranked_data - use ranked dataset of value n. Default 0.
         """
         import matplotlib
         import matplotlib.ticker
@@ -482,11 +607,22 @@ class post:
         receptors = point(receptor_num
                          ,XYZs=receptor_array)
         
+        if kwargs.get("ranked_data", 0):
+            rank = kwargs.get("ranked_data", 0)
+            if self.DEBUG: print "DEBUG: plotting ranked data for %s highest" % ordinal(rank)
+            datasource = self.rankedPOSTdata
+            kwargs["slice"] = -rank
+            if self.DEBUG: print "DEBUG: slice =", kwargs.get("slice", 0) 
+            if self.DEBUG: print "DEBUG: shape =", datasource[(r_type, r_form, source_group)].shape
+        else:
+            rank = 0
+            datasource = self.POSTdata
+        
         if kwargs.get("exclude_flagpole_receptors", False):
             if self.DEBUG: print "DEBUG: removing flagplot data"
-            concs = self.POSTdata[(r_type, r_form, source_group)][:,kwargs.get("slice", 0)][self.receptors.Z==0] * kwargs.get("scalar", 1.0) + kwargs.get("add_background", 0.0)
+            concs = datasource[(r_type, r_form, source_group)][:,kwargs.get("slice", 0)][self.receptors.Z==0] * kwargs.get("scalar", 1.0) + kwargs.get("add_background", 0.0)
         else:
-            concs = self.POSTdata[(r_type, r_form, source_group)][:,kwargs.get("slice", 0)] * kwargs.get("scalar", 1.0) + kwargs.get("add_background", 0.0)
+            concs = datasource[(r_type, r_form, source_group)][:,kwargs.get("slice", 0)] * kwargs.get("scalar", 1.0) + kwargs.get("add_background", 0.0)
         
         # define grid.
         
@@ -540,7 +676,7 @@ class post:
                              ,levels=levels)
         CS.ax.set_aspect(1)
         
-        if "hour" in self.vars_index:
+        if "hour" in self.vars_index and rank == 0:
             plt.text(1.0
                     ,1.012
                     ,self.datetimes[kwargs.get("slice", 0)].strftime("%Y-%m-%d %H:00")
@@ -683,7 +819,8 @@ class post:
         
         plt.title(pollutant_dict[kwargs.get("pollutant", "PM2.5")][0] + " " + \
                   ("" if r_form is "CONCURRENT" else r_type )+ "\n" + \
-                  ("HOURLY" if r_form is "CONCURRENT" else r_form)
+                  ("%s HIGHEST " %(ordinal(rank)) if rank else "")  + \
+                  ("HOURLY" if (r_form == "CONCURRENT") else r_form)
                  ,size=kwargs.get("title_size", 10)
                  ,ha="left"
                  ,position=(0.05,1.012)
