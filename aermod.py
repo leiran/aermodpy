@@ -455,7 +455,7 @@ class post:
         self.POSTdata[(r_type, r_form, source_group)] *= kwargs.get("scalar", 1.0)
         
     def processPOSTData(self
-                       ,ranked=0
+                       ,ranked=1
                        ,annual=False
                        ):
         """Process stored POST file data"""
@@ -465,7 +465,7 @@ class post:
             try:
                 self.getPOSTfileMetaData()
                 self.getPOSTfileHeader()
-                self.getPOSTfileData()
+                self.getPOSTfileData(ranked=ranked, annual=annual)
                 if ranked:
                     for (r_type, r_form, source_group) in self.datatypes:
                         self.rankPOSTData(r_type
@@ -499,25 +499,21 @@ class post:
         
     def getPOSTfileData(self
                        ,h=0
+                       ,ranked=1
+                       ,annual=False
                        ):
         """Get data from POSTfile, process for average number of hours"""
         if self.verbose: print "--> retrieving data"
         #if self.DEBUG: print "DEBUG:", self.receptors.num, "receptors" 
         
+        h=0
         for r in range(self.receptors.num):
             line = self.POSTfile.next()
             if r == 0:
                 #if self.DEBUG: print "DEBUG: receptor 0 for hour", h
                 if h == 0:
-                    self.POSTdata[self.datatypes[-1]] = numpy.empty([self.receptors.num, 1])
-                    #if self.DEBUG: print "DEBUG: array successfully created at hour", h
-                else:
-                    self.POSTdata[self.datatypes[-1]] = \
-                        numpy.append(self.POSTdata[self.datatypes[-1]]
-                                    ,numpy.empty([self.receptors.num, 1])
-                                    ,axis=1
-                                    )
-                    #if self.DEBUG: print "DEBUG: array successfully expanded at hour", h
+                    #if self.DEBUG: print "DEBUG: receptor 0 for hour 0; rank =", ranked
+                    self.POSTdata[self.datatypes[-1]] = numpy.empty([self.receptors.num, ranked])
             
             # decode data
             data4hour, dt = self.decode_data(line)
@@ -533,11 +529,15 @@ class post:
                 self.receptors.Y[r] = data4hour[1]
                 self.receptors.Z[r] = data4hour[2]
             
+            receptor_ranked = numpy.append(self.POSTdata[self.datatypes[-1]][r], [data4hour[3]])
+            receptor_ranked = receptor_ranked.sort()
+            receptor_ranked = receptor_ranked[-ranked:]
+            
             self.POSTdata[self.datatypes[-1]][r,-1] = data4hour[3]
             
             if "hour" in self.vars_index and (r+1 == self.receptors.num): 
                 try: 
-                    self.getPOSTfileData(h+1)
+                    self.getPOSTfileData(h+1, ranked=ranked, annual=annual)
                 except:
                     return
     
@@ -608,21 +608,18 @@ class post:
                          ,XYZs=receptor_array)
         
         if kwargs.get("ranked_data", 0):
-            rank = kwargs.get("ranked_data", 0)
+            rank = kwargs.get("ranked_data", 1)
             if self.DEBUG: print "DEBUG: plotting ranked data for %s highest" % ordinal(rank)
-            datasource = self.rankedPOSTdata
             kwargs["slice"] = -rank
             if self.DEBUG: print "DEBUG: slice =", kwargs.get("slice", 0) 
-            if self.DEBUG: print "DEBUG: shape =", datasource[(r_type, r_form, source_group)].shape
         else:
             rank = 0
-            datasource = self.POSTdata
         
         if kwargs.get("exclude_flagpole_receptors", False):
             if self.DEBUG: print "DEBUG: removing flagplot data"
-            concs = datasource[(r_type, r_form, source_group)][:,kwargs.get("slice", 0)][self.receptors.Z==0] * kwargs.get("scalar", 1.0) + kwargs.get("add_background", 0.0)
+            concs = self.POSTdata[(r_type, r_form, source_group)][:,kwargs.get("slice", 0)][self.receptors.Z==0] * kwargs.get("scalar", 1.0) + kwargs.get("add_background", 0.0)
         else:
-            concs = datasource[(r_type, r_form, source_group)][:,kwargs.get("slice", 0)] * kwargs.get("scalar", 1.0) + kwargs.get("add_background", 0.0)
+            concs = self.POSTdata[(r_type, r_form, source_group)][:,kwargs.get("slice", 0)] * kwargs.get("scalar", 1.0) + kwargs.get("add_background", 0.0)
         
         # define grid.
         
