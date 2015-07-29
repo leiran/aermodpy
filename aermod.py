@@ -275,7 +275,6 @@ class post:
                                 ,formatstring):
         """placeholder function for decoding a string describing POST file dataformat"""
         # example format '*         FORMAT: (3(1X,F13.5),3(1X,F8.2),3X,A5,2X,A8,2X,A4,6X,A8,2X,I8)'
-        print "WARNING: placeholder 'decode_format_datastring' called. this method is still in development."
         return formatstring
     
     def decode_data(self
@@ -432,7 +431,7 @@ class post:
             source_group = datatype_metadata[-1]
             if self.DEBUG: print "DEBUG:", r_type, r_form, source_group
             self.datatypes.append((r_type, r_form, source_group))
-            self.POSTdata[(r_type, r_form, source_group)] = numpy.empty([self.receptors.num, 1])
+            self.POSTdata[(r_type, r_form, source_group)] = numpy.zeros([self.receptors.num, 1])
         
         if len(self.modeldoc) == 1:
             n_receptors = [int(s) for s in receptors_doc.split() if s.isdigit()][0]
@@ -455,7 +454,7 @@ class post:
         self.POSTdata[(r_type, r_form, source_group)] *= kwargs.get("scalar", 1.0)
         
     def processPOSTData(self
-                       ,ranked=0
+                       ,ranked=1
                        ,annual=False
                        ):
         """Process stored POST file data"""
@@ -465,59 +464,41 @@ class post:
             try:
                 self.getPOSTfileMetaData()
                 self.getPOSTfileHeader()
-                self.getPOSTfileData()
-                if ranked:
-                    for (r_type, r_form, source_group) in self.datatypes:
-                        self.rankPOSTData(r_type
-                                         ,r_form
-                                         ,source_group
-                                         ,n=ranked
-                                         ,annual=annual
-                                         )
+                
+                self.POSTdata[self.datatypes[-1]] = numpy.zeros([self.receptors.num, ranked])
+                if "hour" in self.vars_index:
+                    h = 0
+                    while True:
+                        try:
+                            self.getPOSTfileData(h=h, ranked=ranked)
+                            h += 1
+                        except:
+                            if self.DEBUG: 
+                                print "DEBUG: reached exception during file processing"
+                                print "      ", self.datetimes[-1]
+                            return
+                else:
+                    try:
+                        self.getPOSTfileData(h=h, ranked=ranked)
+                        if self.DEBUG: 
+                            print "DEBUG: got 1 instance of POST data"
+                    except:
+                        return
             except:
-                break
-        
-    def rankPOSTData(self
-                    ,r_type
-                    ,r_form
-                    ,source_group
-                    ,n=1
-                    ,annual=False
-                    ):
-        """Compress stored POST file data to the top n values."""
-        if self.verbose: print "--> ranking POST data"
-        
-        if "rankedPOSTdata" not in self.__dict__:
-            self.rankedPOSTdata = {}
-        
-        self.rankedPOSTdata[(r_type, r_form, source_group)
-                           ] = self.POSTdata[(r_type, r_form, source_group)
-                                            ].__copy__()
-        self.rankedPOSTdata[(r_type, r_form, source_group)].sort(axis=1)
-        self.rankedPOSTdata[(r_type, r_form, source_group)] = \
-            self.rankedPOSTdata[(r_type, r_form, source_group)][:,-n:]
+                return
         
     def getPOSTfileData(self
                        ,h=0
+                       ,ranked=1
                        ):
         """Get data from POSTfile, process for average number of hours"""
         if self.verbose: print "--> retrieving data"
-        #if self.DEBUG: print "DEBUG:", self.receptors.num, "receptors" 
+        
+        if h == 0:
+            self.POSTdata[self.datatypes[-1]] = numpy.zeros([self.receptors.num, ranked])
         
         for r in range(self.receptors.num):
             line = self.POSTfile.next()
-            if r == 0:
-                #if self.DEBUG: print "DEBUG: receptor 0 for hour", h
-                if h == 0:
-                    self.POSTdata[self.datatypes[-1]] = numpy.empty([self.receptors.num, 1])
-                    #if self.DEBUG: print "DEBUG: array successfully created at hour", h
-                else:
-                    self.POSTdata[self.datatypes[-1]] = \
-                        numpy.append(self.POSTdata[self.datatypes[-1]]
-                                    ,numpy.empty([self.receptors.num, 1])
-                                    ,axis=1
-                                    )
-                    #if self.DEBUG: print "DEBUG: array successfully expanded at hour", h
             
             # decode data
             data4hour, dt = self.decode_data(line)
@@ -525,7 +506,7 @@ class post:
             # build datetime list
             if r == 0:
                 self.datetimes.append(dt)
-                #if self.DEBUG: print "DEBUG:", "processing for", dt
+                if self.DEBUG: print "DEBUG:", "processing for", dt
             
             # populate receptor location values
             if h == 0:
@@ -533,13 +514,19 @@ class post:
                 self.receptors.Y[r] = data4hour[1]
                 self.receptors.Z[r] = data4hour[2]
             
-            self.POSTdata[self.datatypes[-1]][r,-1] = data4hour[3]
+            receptor_data = numpy.append(self.POSTdata[self.datatypes[-1]][r,:], [data4hour[3]], axis=1)
+            receptor_data.sort()
+            self.POSTdata[self.datatypes[-1]][r,:] = receptor_data[::-1][:ranked]
             
-            if "hour" in self.vars_index and (r+1 == self.receptors.num): 
-                try: 
-                    self.getPOSTfileData(h+1)
-                except:
-                    return
+        return
+#         if "hour" in self.vars_index and (r+1 == self.receptors.num): 
+#             try: 
+#                 self.getPOSTfileData(h+1, ranked=ranked)
+#             except:
+#                 if self.DEBUG: 
+#                     print "DEBUG: reached exception during file processing"
+#                     print "      ", self.datetimes[-1], r+1
+#                 return
     
     def draw_building(self
                      ,building
@@ -607,22 +594,13 @@ class post:
         receptors = point(receptor_num
                          ,XYZs=receptor_array)
         
-        if kwargs.get("ranked_data", 0):
-            rank = kwargs.get("ranked_data", 0)
-            if self.DEBUG: print "DEBUG: plotting ranked data for %s highest" % ordinal(rank)
-            datasource = self.rankedPOSTdata
-            kwargs["slice"] = -rank
-            if self.DEBUG: print "DEBUG: slice =", kwargs.get("slice", 0) 
-            if self.DEBUG: print "DEBUG: shape =", datasource[(r_type, r_form, source_group)].shape
-        else:
-            rank = 0
-            datasource = self.POSTdata
+        rank = kwargs.get("ranked_data", 1)
         
         if kwargs.get("exclude_flagpole_receptors", False):
             if self.DEBUG: print "DEBUG: removing flagplot data"
-            concs = datasource[(r_type, r_form, source_group)][:,kwargs.get("slice", 0)][self.receptors.Z==0] * kwargs.get("scalar", 1.0) + kwargs.get("add_background", 0.0)
+            concs = self.POSTdata[(r_type, r_form, source_group)][:,-rank][self.receptors.Z==0] * kwargs.get("scalar", 1.0) + kwargs.get("add_background", 0.0)
         else:
-            concs = datasource[(r_type, r_form, source_group)][:,kwargs.get("slice", 0)] * kwargs.get("scalar", 1.0) + kwargs.get("add_background", 0.0)
+            concs = self.POSTdata[(r_type, r_form, source_group)][:,-rank] * kwargs.get("scalar", 1.0) + kwargs.get("add_background", 0.0)
         
         # define grid.
         
