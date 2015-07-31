@@ -466,8 +466,8 @@ class post:
                 self.getPOSTfileHeader()
                 
                 self.POSTdata[self.datatypes[-1]] = numpy.zeros([self.receptors.num, ranked])
+                h = 0
                 if "hour" in self.vars_index:
-                    h = 0
                     while True:
                         try:
                             self.getPOSTfileData(h=h, ranked=ranked)
@@ -543,6 +543,14 @@ class post:
                  ,alpha=kwargs.get("alpha", 1.00)
                  ,ec="black"
                  )
+        if kwargs.get("building_name", False) and (story == 1):
+            plot.annotate(str(building)
+                         ,xy=((self.building_vertices[(building, story)].X - origin.X).mean()
+                             ,(self.building_vertices[(building, story)].Y - origin.Y).mean())
+                         ,va="center"
+                         ,ha="center"
+                         ,size=kwargs.get("max_textsize", 8)
+                         )
     
     def gridplot(self
                 ,r_type
@@ -575,7 +583,7 @@ class post:
         scalar - multiplier for concentration data
         exclude_flagpole_receptors - Default = False, set to True to exclude flagpole receptors
         add_background - Default value = 0.0
-        ranked_data - use ranked dataset of value n. Default 0.
+        ranked_data - use ranked dataset of value n. Default=1.
         """
         import matplotlib
         import matplotlib.ticker
@@ -594,13 +602,14 @@ class post:
         receptors = point(receptor_num
                          ,XYZs=receptor_array)
         
-        rank = kwargs.get("ranked_data", 1)
+        rank = kwargs.get("ranked_data", 0)
+        rank_index = 0 if rank == 0 else rank-1
         
         if kwargs.get("exclude_flagpole_receptors", False):
             if self.DEBUG: print "DEBUG: removing flagplot data"
-            concs = self.POSTdata[(r_type, r_form, source_group)][:,-rank][self.receptors.Z==0] * kwargs.get("scalar", 1.0) + kwargs.get("add_background", 0.0)
+            concs = self.POSTdata[(r_type, r_form, source_group)][:,rank_index][self.receptors.Z==0] * kwargs.get("scalar", 1.0) + kwargs.get("add_background", 0.0)
         else:
-            concs = self.POSTdata[(r_type, r_form, source_group)][:,-rank] * kwargs.get("scalar", 1.0) + kwargs.get("add_background", 0.0)
+            concs = self.POSTdata[(r_type, r_form, source_group)][:,rank_index] * kwargs.get("scalar", 1.0) + kwargs.get("add_background", 0.0)
         
         # define grid.
         
@@ -654,17 +663,17 @@ class post:
                              ,levels=levels)
         CS.ax.set_aspect(1)
         
-        if "hour" in self.vars_index and rank == 0:
-            plt.text(1.0
-                    ,1.012
-                    ,self.datetimes[kwargs.get("slice", 0)].strftime("%Y-%m-%d %H:00")
-                    ,horizontalalignment='right'
-                    ,verticalalignment='bottom'
-                    ,transform=CS.ax.transAxes
-                    ,fontsize=kwargs.get("labelsize", 10)
-                    ,color="#333333"
-                    )
-        
+#         if "hour" in self.vars_index and rank == 1:
+#             plt.text(1.0
+#                     ,1.012
+#                     ,self.datetimes[kwargs.get("slice", 0)].strftime("%Y-%m-%d %H:00")
+#                     ,horizontalalignment='right'
+#                     ,verticalalignment='bottom'
+#                     ,transform=CS.ax.transAxes
+#                     ,fontsize=kwargs.get("labelsize", 10)
+#                     ,color="#333333"
+#                     )
+#         
         
         if not kwargs.get("nocolorbar", False):
             matplotlib.rcParams['xtick.direction'] = 'out'
