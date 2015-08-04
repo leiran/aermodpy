@@ -21,6 +21,7 @@ import os.path
 import datetime
 import calendar
 import numpy
+import csv
 
 # color_dict contains a dictionary of levels
 color_dicts = {
@@ -470,7 +471,7 @@ class post:
                 if "hour" in self.vars_index:
                     while True:
                         try:
-                            self.getPOSTfileData(h=h, ranked=ranked)
+                            self.getPOSTfileData(h=h, annual=annual, ranked=ranked)
                             h += 1
                         except:
                             if self.DEBUG: 
@@ -489,6 +490,7 @@ class post:
         
     def getPOSTfileData(self
                        ,h=0
+                       ,annual=False
                        ,ranked=1
                        ):
         """Get data from POSTfile, process for average number of hours"""
@@ -549,8 +551,31 @@ class post:
                              ,(self.building_vertices[(building, story)].Y - origin.Y).mean())
                          ,va="center"
                          ,ha="center"
+                         ,color="blue"
                          ,size=kwargs.get("max_textsize", 8)
                          )
+    
+    def printdata(self
+                ,r_type
+                ,r_form # datatype key for POSTdata
+                ,source_group
+                ,filename="aermod_results.csv"
+                ,directory="."
+                ,**kwargs
+                ):
+        with self.openfile(filename, directory, "w") as csvoutfile:
+            csvoutfile.write(r_type+"\n")
+            csvoutfile.write(r_form+"\n")
+            csvoutfile.write(source_group+"\n")
+            w = csv.writer(csvoutfile)
+            rank = kwargs.get("ranked_data", 0)
+            rank_index = 0 if rank == 0 else rank-1
+            if kwargs.get("exclude_flagpole_receptors", False):
+                concs = self.POSTdata[(r_type, r_form, source_group)][:,rank_index][self.receptors.Z==0] * kwargs.get("scalar", 1.0) + kwargs.get("add_background", 0.0)
+            else:
+                concs = self.POSTdata[(r_type, r_form, source_group)][:,rank_index] * kwargs.get("scalar", 1.0) + kwargs.get("add_background", 0.0)
+            outlist = [kwargs.get("scale_decimals","%0.0f") % concs.max()]
+            w.writerow(outlist)
     
     def gridplot(self
                 ,r_type
@@ -790,6 +815,7 @@ class post:
                 self.draw_building(name, story, plt, origin=origin
                                   ,color=kwargs.get("building_color", building_color)
                                   ,linewidth=kwargs.get("building_linewidth", 0.4)
+                                  ,building_name=kwargs.get("building_name", False)
                                   )
         
             if kwargs.get("sources", False):
