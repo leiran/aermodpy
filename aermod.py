@@ -11,7 +11,7 @@ __author__ = "Leiran Biton"
 __copyright__ = "Copyright 2015"
 __credits__ = []
 __license__ = "GPL"
-__version__ = "0.03"
+__version__ = "0.10"
 __maintainer__ = "Leiran Biton"
 __email__ = "leiranbiton@gmail.com"
 __status__ = "Production"
@@ -480,7 +480,7 @@ class post:
                             return
                 else:
                     try:
-                        self.getPOSTfileData(h=h, ranked=ranked)
+                        self.getPOSTfileData(h=h, annual=annual, ranked=ranked)
                         if self.DEBUG: 
                             print "DEBUG: got 1 instance of POST data"
                     except:
@@ -498,6 +498,8 @@ class post:
         
         if h == 0:
             self.POSTdata[self.datatypes[-1]] = numpy.zeros([self.receptors.num, ranked])
+            if annual:
+                self.POSTdata[self.datatypes[-1]] = numpy.expand_dims(self.POSTdata[self.datatypes[-1]], axis=2)
         
         for r in range(self.receptors.num):
             line = self.POSTfile.next()
@@ -507,8 +509,13 @@ class post:
             
             # build datetime list
             if r == 0:
-                self.datetimes.append(dt)
                 if self.DEBUG: print "DEBUG:", "processing for", dt
+                if annual and (h > 0) and (dt.year > datetimes[-1].year):
+                    self.POSTdata[self.datatypes[-1]] = numpy.append(self.POSTdata[self.datatypes[-1]]
+                                                                    ,numpy.zeros([self.receptors.num, ranked, 1])
+                                                                    ,axis=2
+                                                                    )
+                self.datetimes.append(dt)
             
             # populate receptor location values
             if h == 0:
@@ -516,19 +523,15 @@ class post:
                 self.receptors.Y[r] = data4hour[1]
                 self.receptors.Z[r] = data4hour[2]
             
-            receptor_data = numpy.append(self.POSTdata[self.datatypes[-1]][r,:], [data4hour[3]], axis=1)
-            receptor_data.sort()
-            self.POSTdata[self.datatypes[-1]][r,:] = receptor_data[::-1][:ranked]
-            
+            if annual:
+                receptor_data = numpy.append(self.POSTdata[self.datatypes[-1]][r,:,-1], [data4hour[3]], axis=1)
+                receptor_data.sort()
+                self.POSTdata[self.datatypes[-1]][r,:,-1] = receptor_data[::-1][:ranked]
+            else:
+                receptor_data = numpy.append(self.POSTdata[self.datatypes[-1]][r,:], [data4hour[3]], axis=1)
+                receptor_data.sort()
+                self.POSTdata[self.datatypes[-1]][r,:] = receptor_data[::-1][:ranked]
         return
-#         if "hour" in self.vars_index and (r+1 == self.receptors.num): 
-#             try: 
-#                 self.getPOSTfileData(h+1, ranked=ranked)
-#             except:
-#                 if self.DEBUG: 
-#                     print "DEBUG: reached exception during file processing"
-#                     print "      ", self.datetimes[-1], r+1
-#                 return
     
     def draw_building(self
                      ,building
