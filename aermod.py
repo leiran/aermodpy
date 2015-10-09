@@ -90,6 +90,28 @@ color_dicts = {
              ,(100, "#b30000", "100")
              ,(110, "#940000", "110")
              )
+,"1h-pm-fine-high":   (
+              (  0, "#FFFFFF", "  0")
+             ,(1.2, "#dbfadf", "")
+             ,(  4, "#c5f7cb", "")
+             ,(  9, "#8aef98", "")
+             ,( 12, "#fefebe", " 12 (Annual NAAQS)")
+             ,( 15, "#FDFD96", " ")
+             ,( 20, "#FFFF00", "")
+             ,( 25, "#FFF700", " ")
+             ,( 30, "#FFEF00", "")
+             ,( 35, "#FFB347", " 35 (24H NAAQS)")
+             ,( 40, "#FFA812", "")
+             ,( 45, "#FF7F00", "")
+             ,( 50, "#FF6700", " ")
+             ,( 55, "#ff3838", " 55")
+             ,( 70, "#fa0000", " ")
+             ,( 80, "#d60000", " ")
+             ,( 90, "#c20000", " ")
+             ,(100, "#b30000", "100")
+             ,(110, "#db00c2", "")
+             ,(460, "#db00c2", "500")
+             )
 ,"annual-pm-fine":   (
               (  0, "#FFFFFF", " ")
              ,(0.3, "#dbfadf", " 0.3 (SIL)")
@@ -120,6 +142,64 @@ color_dicts = {
              ,(150, "#FF6700", "150")
              ,(200, "#CC5500", "200")
              ,(360, "red", "360 AQI=Unhealthy")
+             )
+,"8h-co-high":   (
+              ( 0.0, "#FFFFFF", " 0.0")
+             ,( 0.4, "#dbfadf", " 0.4 8-h SIL")
+             ,( 2.0, "#c5f7cb", " 2.0 1-h SIL")
+             ,( 3.0, "#8aef98", "")
+             ,( 4.4, "#fefebe", " 4.4 AQI=Moderate 8-h")
+             ,( 5.0, "#FDFD96", "")
+             ,( 6.0, "#FFF700", "")
+             ,( 7.0, "#FFEF00", "")
+             ,( 9.5, "#FFB347", " 9.5 AQI=USG 8-h")
+             ,(10.0, "#FFA812", "")
+             ,(11.0, "#FF7F00", "")
+             ,(12.0, "#CC5500", "")
+             ,(12.5, "#FF0000", "12.5 AQI=Unhealthy")
+             ,(15.5, "#db00c2", "15.5 AQI=Very Unhealthy")
+             ,(30.5, "#AA0020", "30.5 AQI=Hazardous")
+             ,(50.5, "#000000", "")
+             )
+,"1h-co-high":   (
+              ( 0.0, "#FFFFFF", " 0.0")
+             ,( 0.4, "#dbfadf", " 0.4")
+             ,( 2.0, "#c5f7cb", " 2.0 SIL")
+             ,( 3.0, "#8aef98", "")
+             ,( 4.4, "#fefebe", " 4.4 AQI=Moderate")
+             ,( 5.0, "#FDFD96", "")
+             ,( 6.0, "#FFF700", "")
+             ,( 7.0, "#FFEF00", "")
+             ,( 9.5, "#FFB347", " 9.5 AQI=USG")
+             ,(10.0, "#FFA812", "")
+             ,(11.0, "#FF7F00", "")
+             ,(12.0, "#CC5500", "")
+             ,(12.5, "#FF0000", "12.5 AQI=Unhealthy")
+             ,(15.5, "#db00c2", "15.5 AQI=Very Unhealthy")
+             ,(30.5, "#AA0020", "30.5 AQI=Hazardous")
+             ,(50.5, "#000000", "")
+             )
+,"8h-co":   (
+              ( 0.0, "#FFFFFF", " 0.0")
+             ,( 0.4, "#dbfadf", " 0.4 8-h SIL")
+             ,( 2.0, "#c5f7cb", " 2.0 1-h SIL")
+             ,( 3.0, "#8aef98", "")
+             ,( 4.4, "#fefebe", " 4.4 AQI=Moderate")
+             ,( 5.0, "#FDFD96", "")
+             ,( 6.0, "#FFF700", "")
+             ,( 7.0, "#FFEF00", "")
+             ,( 9.5, "#FFB347", " 9.5 AQI=USG")
+             )
+,"1h-co":   (
+              ( 0.0, "#FFFFFF", " 0.0")
+             ,( 0.4, "#dbfadf", " 0.4")
+             ,( 2.0, "#c5f7cb", " 2.0 SIL")
+             ,( 3.0, "#8aef98", "")
+             ,( 4.4, "#fefebe", " 4.4 AQI=Moderate")
+             ,( 5.0, "#FDFD96", "")
+             ,( 6.0, "#FFF700", "")
+             ,( 7.0, "#FFEF00", "")
+             ,( 9.5, "#FFB347", " 9.5 AQI=USG")
              )
               }
 
@@ -473,9 +553,10 @@ class post:
                         try:
                             self.getPOSTfileData(h=h, annual=annual, ranked=ranked)
                             h += 1
-                        except:
+                        except Exception as e:
                             if self.DEBUG: 
                                 print "DEBUG: reached exception during file processing"
+                                print "DEBUG:", "Unexpected error:", e
                                 print "      ", self.datetimes[-1]
                             return
                 else:
@@ -510,7 +591,7 @@ class post:
             # build datetime list
             if r == 0:
                 if self.DEBUG: print "DEBUG:", "processing for", dt
-                if annual and (h > 0) and (dt.year > datetimes[-1].year):
+                if annual and (h > 0) and (dt.year > self.datetimes[-1].year):
                     self.POSTdata[self.datatypes[-1]] = numpy.append(self.POSTdata[self.datatypes[-1]]
                                                                     ,numpy.zeros([self.receptors.num, ranked, 1])
                                                                     ,axis=2
@@ -612,6 +693,7 @@ class post:
         exclude_flagpole_receptors - Default = False, set to True to exclude flagpole receptors
         add_background - Default value = 0.0
         ranked_data - use ranked dataset of value n. Default=1.
+        annual - POSTdata has annual values (default=False)
         """
         import matplotlib
         import matplotlib.ticker
@@ -633,11 +715,19 @@ class post:
         rank = kwargs.get("ranked_data", 0)
         rank_index = 0 if rank == 0 else rank-1
         
-        if kwargs.get("exclude_flagpole_receptors", False):
-            if self.DEBUG: print "DEBUG: removing flagplot data"
-            concs = self.POSTdata[(r_type, r_form, source_group)][:,rank_index][self.receptors.Z==0] * kwargs.get("scalar", 1.0) + kwargs.get("add_background", 0.0)
+        if kwargs.get("annual", False):
+            if self.DEBUG: print "DEBUG: 'annual' flag is on. Averaging all years."
+            if kwargs.get("exclude_flagpole_receptors", False):
+                if self.DEBUG: print "DEBUG: removing flagplot data"
+                concs = numpy.mean(self.POSTdata[(r_type, r_form, source_group)][:,rank_index,:], axis=1)[self.receptors.Z==0] * kwargs.get("scalar", 1.0) + kwargs.get("add_background", 0.0)
+            else:
+                concs = numpy.mean(self.POSTdata[(r_type, r_form, source_group)][:,rank_index,:], axis=1) * kwargs.get("scalar", 1.0) + kwargs.get("add_background", 0.0)
         else:
-            concs = self.POSTdata[(r_type, r_form, source_group)][:,rank_index] * kwargs.get("scalar", 1.0) + kwargs.get("add_background", 0.0)
+            if kwargs.get("exclude_flagpole_receptors", False):
+                if self.DEBUG: print "DEBUG: removing flagplot data"
+                concs = self.POSTdata[(r_type, r_form, source_group)][:,rank_index][self.receptors.Z==0] * kwargs.get("scalar", 1.0) + kwargs.get("add_background", 0.0)
+            else:
+                concs = self.POSTdata[(r_type, r_form, source_group)][:,rank_index] * kwargs.get("scalar", 1.0) + kwargs.get("add_background", 0.0)
         
         # define grid.
         
