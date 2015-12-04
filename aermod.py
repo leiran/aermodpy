@@ -4,7 +4,9 @@
 design notes:
 + Bug on POST processing; only processes 996 hours
    - proposed fix: in-place averaging, discard hourly data
-"""
+
+developed for python 3.x
+   """
 
 # docstring metadata
 __author__ = "Leiran Biton"
@@ -392,18 +394,18 @@ class post:
         self.building_vertices = {}
         self.sources = {}
         
-        if self.verbose: print "--> opening building data file"
+        if self.verbose: print("--> opening building data file")
         self.building_file = self.openfile(filename, directory, "rU")
         
         # throw away header data
         [self.building_file.next() for header in range(2)]
         
         units, unit_value = self.building_file.next().split()
-        if self.DEBUG: print "DEBUG: units / unit_value:", units, unit_value
+        if self.DEBUG: print("DEBUG: units / unit_value:", units, unit_value)
         
         utmy, trash = self.building_file.next().split()
         num_bldgs = int(self.building_file.next())
-        if self.DEBUG: print "DEBUG: number of buildings:", num_bldgs
+        if self.DEBUG: print("DEBUG: number of buildings:", num_bldgs)
         
         for building in range(num_bldgs):
             try:
@@ -417,12 +419,12 @@ class post:
                 try:
                     name, trash, elev, height, x, y = self.building_file.next().split()
                     name = name.strip().replace("'","")
-                    if self.DEBUG: print "DEBUG: source name:", name, x, y
+                    if self.DEBUG: print("DEBUG: source name:", name, x, y)
                     self.sources[(name)] = \
                         point(1, Xs=numpy.array(float(x))
                                , Ys=numpy.array(float(y))
                                )
-                    if self.DEBUG: print "DEBUG: source:", self.sources[(name)].X, self.sources[(name)].Y
+                    if self.DEBUG: print("DEBUG: source:", self.sources[(name)].X, self.sources[(name)].Y)
                 except:
                     raise
     
@@ -464,8 +466,8 @@ class post:
         except TypeError:
             raise TypeError("Invalid 'directory' or 'filename' inputs!")
         
-        if self.verbose: print "Opening file:", filepath
-        if self.verbose: print "                 mode =", mode
+        if self.verbose: print("Opening file:", filepath)
+        if self.verbose: print("                 mode =", mode)
         try: openfile = open(filepath, mode)
         except:
             raise IOError("Filepath '%s' failed to open. Check the address and mode." % filepath)
@@ -487,8 +489,8 @@ class post:
             raise Exception("POST file does not contain proper header metadata")
         
         # extract format string from data format documentation
-        if self.DEBUG: print "DEBUG: filetype_doc =", filetype_doc
-        if self.DEBUG: print "DEBUG: dataformat_doc =", dataformat_doc
+        if self.DEBUG: print("DEBUG: filetype_doc =", filetype_doc)
+        if self.DEBUG: print("DEBUG: dataformat_doc =", dataformat_doc)
         dataformat_string = dataformat_doc[dataformat_doc.index(":")+1:].strip()
         # decode data format string
         dataformat = self.decode_format_datastring(dataformat_string)
@@ -510,7 +512,7 @@ class post:
                                        datatype_metadata.index("VALUES")-1]
             r_form = " ".join(r_form)
             source_group = datatype_metadata[-1]
-            if self.DEBUG: print "DEBUG:", r_type, r_form, source_group
+            if self.DEBUG: print("DEBUG:", r_type, r_form, source_group)
             self.datatypes.append((r_type, r_form, source_group))
             self.POSTdata[(r_type, r_form, source_group)] = numpy.zeros([self.receptors.num, 1])
         
@@ -524,14 +526,14 @@ class post:
         self.POSTfile.next() # -------- line
         
     def printResults(self, filename, r_type, **kwargs):
-        """print r_type results data array to outfile as comma separated values"""
+        """print(r_type results data array to outfile as comma separated values)"""
         outfile = self.openfile(filename, directory=kwargs.get("directory", "."), mode="w")
         self.POSTdata[(r_type, r_form, source_group)].tofile(outfile, sep=",")
         outfile.close()
         
     def scalePOSTdata(self, r_type, **kwargs):
         """scales POSTdata result_type using optional "scalar" keyword argument. if omitted, 1.0."""
-        if self.DEBUG: print "DEBUG: scaling %s results by" % r_type, kwargs.get("scalar", 1.0)
+        if self.DEBUG: print("DEBUG: scaling %s results by" % r_type, kwargs.get("scalar", 1.0))
         self.POSTdata[(r_type, r_form, source_group)] *= kwargs.get("scalar", 1.0)
         
     def processPOSTData(self
@@ -539,7 +541,7 @@ class post:
                        ,annual=False
                        ):
         """Process stored POST file data"""
-        if self.verbose: print "--> processing open data file"
+        if self.verbose: print("--> processing open data file")
         
         while True:
             try:
@@ -555,15 +557,15 @@ class post:
                             h += 1
                         except Exception as e:
                             if self.DEBUG: 
-                                print "DEBUG: reached exception during file processing"
-                                print "DEBUG:", "Unexpected error:", e
-                                print "      ", self.datetimes[-1]
+                                print("DEBUG: reached exception during file processing")
+                                print("DEBUG:", "Unexpected error:", e)
+                                print("      ", self.datetimes[-1])
                             return
                 else:
                     try:
                         self.getPOSTfileData(h=h, annual=annual, ranked=ranked)
                         if self.DEBUG: 
-                            print "DEBUG: got 1 instance of POST data"
+                            print("DEBUG: got 1 instance of POST data")
                     except:
                         return
             except:
@@ -575,7 +577,7 @@ class post:
                        ,ranked=1
                        ):
         """Get data from POSTfile, process for average number of hours"""
-        if self.verbose: print "--> retrieving data"
+        if self.verbose: print("--> retrieving data")
         
         if h == 0:
             self.POSTdata[self.datatypes[-1]] = numpy.zeros([self.receptors.num, ranked])
@@ -590,7 +592,7 @@ class post:
             
             # build datetime list
             if r == 0:
-                if self.DEBUG: print "DEBUG:", "processing for", dt
+                if self.DEBUG: print("DEBUG:", "processing for", dt)
                 if annual and (h > 0) and (dt.year > self.datetimes[-1].year):
                     self.POSTdata[self.datatypes[-1]] = numpy.append(self.POSTdata[self.datatypes[-1]]
                                                                     ,numpy.zeros([self.receptors.num, ranked, 1])
@@ -701,7 +703,7 @@ class post:
         from scipy.interpolate import griddata
         
         if kwargs.get("exclude_flagpole_receptors", False):
-            if self.DEBUG: print "DEBUG: removing flagpole receptors"
+            if self.DEBUG: print("DEBUG: removing flagpole receptors")
             receptor_array = numpy.column_stack((self.receptors.X[self.receptors.Z==0]
                                                ,self.receptors.Y[self.receptors.Z==0]
                                                ,self.receptors.Z[self.receptors.Z==0]))
@@ -716,15 +718,15 @@ class post:
         rank_index = 0 if rank == 0 else rank-1
         
         if kwargs.get("annual", False):
-            if self.DEBUG: print "DEBUG: 'annual' flag is on. Averaging all years."
+            if self.DEBUG: print("DEBUG: 'annual' flag is on. Averaging all years.")
             if kwargs.get("exclude_flagpole_receptors", False):
-                if self.DEBUG: print "DEBUG: removing flagplot data"
+                if self.DEBUG: print("DEBUG: removing flagplot data")
                 concs = numpy.mean(self.POSTdata[(r_type, r_form, source_group)][:,rank_index,:], axis=1)[self.receptors.Z==0] * kwargs.get("scalar", 1.0) + kwargs.get("add_background", 0.0)
             else:
                 concs = numpy.mean(self.POSTdata[(r_type, r_form, source_group)][:,rank_index,:], axis=1) * kwargs.get("scalar", 1.0) + kwargs.get("add_background", 0.0)
         else:
             if kwargs.get("exclude_flagpole_receptors", False):
-                if self.DEBUG: print "DEBUG: removing flagplot data"
+                if self.DEBUG: print("DEBUG: removing flagplot data")
                 concs = self.POSTdata[(r_type, r_form, source_group)][:,rank_index][self.receptors.Z==0] * kwargs.get("scalar", 1.0) + kwargs.get("add_background", 0.0)
             else:
                 concs = self.POSTdata[(r_type, r_form, source_group)][:,rank_index] * kwargs.get("scalar", 1.0) + kwargs.get("add_background", 0.0)
@@ -742,7 +744,7 @@ class post:
             kwargs["contour_colors"] = [color for level, color, label in kwargs["colorslevels"]]
         
         distance_from_origin = kwargs.get("distance_from_origin", max(x_range/2, y_range/2))
-        if self.DEBUG: print "DEBUG: distance_from_origin -", distance_from_origin
+        if self.DEBUG: print("DEBUG: distance_from_origin -", distance_from_origin)
         
         origin = point(1)
         origin.X = (receptors.X.max() + receptors.X.min())/2
@@ -804,7 +806,7 @@ class post:
             colorbar.ax.tick_params(labelsize=kwargs.get("labelsize", 10))
             
             if kwargs.get("colorslevels", False):
-                if self.DEBUG: print "DEBUG: setting colorbar labels"
+                if self.DEBUG: print("DEBUG: setting colorbar labels")
                 labels = [label for level, color, label in kwargs.get("colorslevels", False)]
                 if kwargs.get("pollutant", None):
                     labels[-1] += " " + pollutant_dict[kwargs["pollutant"]][1]
@@ -828,7 +830,7 @@ class post:
             CS.ax.set_xticklabels(aticks, rotation=90)
             CS.ax.set_yticklabels(aticks)
         else:
-            if self.DEBUG: print "DEBUG: ticklabels set"
+            if self.DEBUG: print("DEBUG: ticklabels set")
             plt.ticklabel_format(axis="both"
                                 ,style="plain"
                                 ,useOffset=0
@@ -866,10 +868,10 @@ class post:
                              ,Ys=numpy.array([receptors.Y[concs.argmax()] - origin.Y])
                              )
             if self.DEBUG: 
-                print "DEBUG: max plot:"
-                print "    X =", max_point.X[0]
-                print "    Y =", max_point.Y[0]
-                print "    c =", concs.max()
+                print("DEBUG: max plot:")
+                print("    X =", max_point.X[0])
+                print("    Y =", max_point.Y[0])
+                print("    c =", concs.max())
             plt.annotate('+ Maximum Concentration: '+ kwargs.get("scale_decimals","%0.0f") % concs.max()
                         ,(0.5, 0)
                         ,(0, -40 + (kwargs.get("max_textsize", 10)))
@@ -899,7 +901,7 @@ class post:
                         )
             
         if kwargs.get("transparent_buildings", False):
-            if self.DEBUG: print "DEBUG: transparent buildings"
+            if self.DEBUG: print("DEBUG: transparent buildings")
             building_color = "#FFFFFF00"
         else:
             building_color = "white"
@@ -914,7 +916,7 @@ class post:
             if kwargs.get("sources", False):
                 for name, source in self.sources.items():
                     if self.DEBUG: 
-                        print "DEBUG: source:", name, source.X, source.Y
+                        print("DEBUG: source:", name, source.X, source.Y)
                         plt.scatter(source.X - origin.X
                                    ,source.Y - origin.Y
                                    ,marker="o"
