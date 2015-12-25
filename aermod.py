@@ -13,7 +13,7 @@ __author__ = "Leiran Biton"
 __copyright__ = "Copyright 2015"
 __credits__ = []
 __license__ = "GPL"
-__version__ = "0.10"
+__version__ = "0.11"
 __maintainer__ = "Leiran Biton"
 __email__ = "leiranbiton@gmail.com"
 __status__ = "Production"
@@ -24,186 +24,6 @@ import datetime
 import calendar
 import numpy
 import csv
-
-# color_dict contains a dictionary of levels
-color_dicts = {
- "post" :    ((   0, "#FFFFFF", "    0")
-             ,( 250, "#FFFF99", "")
-             ,( 500,  "yellow", "")
-             ,(1000, "#FFCC00", "1,000")
-             ,(1500,  "orange", "")
-             ,(2000,     "red", "2,000")
-             ,(4000, "magenta", "4,000")
-             ,(8000, "#993399", "8,000")
-             )
-,"grf"  :    ((  0, "#FFFFFF", "    0")
-             ,( 25, "#FFFF99", "")
-             ,( 50,  "yellow", "")
-             ,(100, "#FFCC00", "100")
-             ,(150,  "orange", "")
-             ,(200,     "red", "200")
-             ,(400, "magenta", "400")
-             ,(800, "#993399", "800")
-             )
-,"24h-pm":   ((  0, "#FFFFFF", " 0")
-             ,(  4, "#FFFF99", " 4")
-             ,( 10,  "yellow", "10")
-             ,( 20, "#FFCC00", "20")
-             ,( 35,  "orange", "35")
-             ,( 40,     "red", "40")
-             ,( 50, "magenta", "50")
-             ,( 60, "#993399", "60")
-             )
-,"24h-pm-fine":   (
-              (  0, "#FFFFFF", " 0")
-             ,(1.2, "#fbfdfe", " 1.2 (SIL)")
-             ,(  4, "#f2f9fc", " 4 (SMC)")
-             ,(  9, "#eaf5fb", " 9 (increment)")
-             ,( 10, "#fefebe", "")
-             ,( 15, "#FDFD96", "15")
-             ,( 20, "#FFFF00", "20")
-             ,( 25, "#FFF700", "25")
-             ,( 30, "#FFEF00", "30")
-             ,( 35, "#FFB347", "35 (NAAQS)")
-             ,( 40, "#FFA812", "40")
-             ,( 45, "#FF7F00", "45")
-             ,( 50, "#FF6700", "50")
-             ,( 55, "#ff3838", "55")
-             ,( 60, "red", "60")
-             )
-,"1h-pm-fine":   (
-              (  0, "#FFFFFF", "  0")
-             ,(1.2, "#dbfadf", "")
-             ,(  4, "#c5f7cb", "")
-             ,(  9, "#8aef98", "")
-             ,( 12, "#fefebe", " 12 (Annual NAAQS)")
-             ,( 15, "#FDFD96", " ")
-             ,( 20, "#FFFF00", " 20")
-             ,( 25, "#FFF700", " ")
-             ,( 30, "#FFEF00", "")
-             ,( 35, "#FFB347", " 35 (24H NAAQS)")
-             ,( 40, "#FFA812", "")
-             ,( 45, "#FF7F00", "")
-             ,( 50, "#FF6700", " ")
-             ,( 55, "#ff3838", " 55")
-             ,( 70, "#fa0000", " ")
-             ,( 80, "#d60000", " ")
-             ,( 90, "#c20000", " ")
-             ,(100, "#b30000", "100")
-             ,(110, "#940000", "110")
-             )
-,"1h-pm-fine-high":   (
-              (  0, "#FFFFFF", "  0")
-             ,(1.2, "#dbfadf", "")
-             ,(  4, "#c5f7cb", "")
-             ,(  9, "#8aef98", "")
-             ,( 12, "#fefebe", " 12 (Annual NAAQS)")
-             ,( 15, "#FDFD96", " ")
-             ,( 20, "#FFFF00", "")
-             ,( 25, "#FFF700", " ")
-             ,( 30, "#FFEF00", "")
-             ,( 35, "#FFB347", " 35 (24H NAAQS)")
-             ,( 40, "#FFA812", "")
-             ,( 45, "#FF7F00", "")
-             ,( 50, "#FF6700", " ")
-             ,( 55, "#ff3838", " 55")
-             ,( 70, "#fa0000", " ")
-             ,( 80, "#d60000", " ")
-             ,( 90, "#c20000", " ")
-             ,(100, "#b30000", "100")
-             ,(110, "#db00c2", "")
-             ,(460, "#db00c2", "500")
-             )
-,"annual-pm-fine":   (
-              (  0, "#FFFFFF", " ")
-             ,(0.3, "#dbfadf", " 0.3 (SIL)")
-             ,(  2, "#c5f7cb", " 2")
-             ,(  4, "#8aef98", " 4 (increment)")
-             ,(  6, "#fefebe", " 6")
-             ,(  8, "#FDFD96", " 8")
-             ,( 10, "#FFF700", "10")
-             ,( 12, "#FFA812", "12 (NAAQS)")
-             ,( 14, "#FF8C00", "14")
-             ,( 16, "#FF6700", "16")
-             ,( 18, "#ff3838", "18")
-             ,( 20, "#CE1620", "20")
-             ,( 22, "#B31B1B", "22")
-             )
-,"1h-no2":   (
-              (  0, "#FFFFFF", "  0")
-             ,( 15, "#dbfadf", "")
-             ,( 30, "#c5f7cb", " 30")
-             ,( 45, "#8aef98", "")
-             ,( 53, "#fefebe", " 53 AQI=Moderate")
-             ,( 70, "#FDFD96", "")
-             ,( 80, "#FFF700", " 80")
-             ,( 90, "#FFEF00", "")
-             ,(100, "#FFB347", "100 (NAAQS)")
-             ,(115, "#FFA812", "115")
-             ,(130, "#FF7F00", "130")
-             ,(150, "#FF6700", "150")
-             ,(200, "#CC5500", "200")
-             ,(360, "red", "360 AQI=Unhealthy")
-             )
-,"8h-co-high":   (
-              ( 0.0, "#FFFFFF", " 0.0")
-             ,( 0.4, "#dbfadf", " 0.4 8-h SIL")
-             ,( 2.0, "#c5f7cb", " 2.0 1-h SIL")
-             ,( 3.0, "#8aef98", "")
-             ,( 4.4, "#fefebe", " 4.4 AQI=Moderate 8-h")
-             ,( 5.0, "#FDFD96", "")
-             ,( 6.0, "#FFF700", "")
-             ,( 7.0, "#FFEF00", "")
-             ,( 9.5, "#FFB347", " 9.5 AQI=USG 8-h")
-             ,(10.0, "#FFA812", "")
-             ,(11.0, "#FF7F00", "")
-             ,(12.0, "#CC5500", "")
-             ,(12.5, "#FF0000", "12.5 AQI=Unhealthy")
-             ,(15.5, "#db00c2", "15.5 AQI=Very Unhealthy")
-             ,(30.5, "#AA0020", "30.5 AQI=Hazardous")
-             ,(50.5, "#000000", "")
-             )
-,"1h-co-high":   (
-              ( 0.0, "#FFFFFF", " 0.0")
-             ,( 0.4, "#dbfadf", " 0.4")
-             ,( 2.0, "#c5f7cb", " 2.0 SIL")
-             ,( 3.0, "#8aef98", "")
-             ,( 4.4, "#fefebe", " 4.4 AQI=Moderate")
-             ,( 5.0, "#FDFD96", "")
-             ,( 6.0, "#FFF700", "")
-             ,( 7.0, "#FFEF00", "")
-             ,( 9.5, "#FFB347", " 9.5 AQI=USG")
-             ,(10.0, "#FFA812", "")
-             ,(11.0, "#FF7F00", "")
-             ,(12.0, "#CC5500", "")
-             ,(12.5, "#FF0000", "12.5 AQI=Unhealthy")
-             ,(15.5, "#db00c2", "15.5 AQI=Very Unhealthy")
-             ,(30.5, "#AA0020", "30.5 AQI=Hazardous")
-             ,(50.5, "#000000", "")
-             )
-,"8h-co":   (
-              ( 0.0, "#FFFFFF", " 0.0")
-             ,( 0.4, "#dbfadf", " 0.4 8-h SIL")
-             ,( 2.0, "#c5f7cb", " 2.0 1-h SIL")
-             ,( 3.0, "#8aef98", "")
-             ,( 4.4, "#fefebe", " 4.4 AQI=Moderate")
-             ,( 5.0, "#FDFD96", "")
-             ,( 6.0, "#FFF700", "")
-             ,( 7.0, "#FFEF00", "")
-             ,( 9.5, "#FFB347", " 9.5 AQI=USG")
-             )
-,"1h-co":   (
-              ( 0.0, "#FFFFFF", " 0.0")
-             ,( 0.4, "#dbfadf", " 0.4")
-             ,( 2.0, "#c5f7cb", " 2.0 SIL")
-             ,( 3.0, "#8aef98", "")
-             ,( 4.4, "#fefebe", " 4.4 AQI=Moderate")
-             ,( 5.0, "#FDFD96", "")
-             ,( 6.0, "#FFF700", "")
-             ,( 7.0, "#FFEF00", "")
-             ,( 9.5, "#FFB347", " 9.5 AQI=USG")
-             )
-              }
 
 pollutant_dict = {"PM2.5" : (r'$\mathregular{PM_{2.5}}$', r'$\mu\mathregular{g/m^3}$')
                  ,"CO"    : ("Carbon Monoxide", "ppm")
@@ -398,13 +218,13 @@ class post:
         self.building_file = self.openfile(filename, directory, "rU")
         
         # throw away header data
-        [self.building_file.next() for header in range(2)]
+        [next(self.building_file) for header in range(2)]
         
-        units, unit_value = self.building_file.next().split()
+        units, unit_value = next(self.building_file).split()
         if self.DEBUG: print("DEBUG: units / unit_value:", units, unit_value)
         
-        utmy, trash = self.building_file.next().split()
-        num_bldgs = int(self.building_file.next())
+        utmy, trash = next(self.building_file).split()
+        num_bldgs = int(next(self.building_file))
         if self.DEBUG: print("DEBUG: number of buildings:", num_bldgs)
         
         for building in range(num_bldgs):
@@ -412,12 +232,12 @@ class post:
                 name, stories, elev = self.building_header()
                 self.process_building(name, stories, elev)
             except:
-                raise
+                raise Exception("No more buildings to process")
         if not nosources:
-            num_srcs = int(self.building_file.next())
+            num_srcs = int(next(self.building_file))
             for src in range(num_srcs):
                 try:
-                    name, trash, elev, height, x, y = self.building_file.next().split()
+                    name, trash, elev, height, x, y = next(self.building_file).split()
                     name = name.strip().replace("'","")
                     if self.DEBUG: print("DEBUG: source name:", name, x, y)
                     self.sources[(name)] = \
@@ -426,11 +246,11 @@ class post:
                                )
                     if self.DEBUG: print("DEBUG: source:", self.sources[(name)].X, self.sources[(name)].Y)
                 except:
-                    raise
+                    raise Exception("No more sources to process")
     
     def building_header(self):
         """get building data for new building"""
-        name_padded, stories, base_elevation = self.building_file.next().split()
+        name_padded, stories, base_elevation = next(self.building_file).split()
         return name_padded.replace("'",""), int(stories), float(base_elevation)
     
     def process_building(self
@@ -447,11 +267,11 @@ class post:
                               ,story
                               ):
         """process a building story"""
-        vertices, height = self.building_file.next().split()
+        vertices, height = next(self.building_file).split()
         vertices = int(vertices)
         height   = float(height)
         vs = numpy.array([(float(X), float(Y)) for (X, Y) in \
-                         [self.building_file.next().split() for v in range(vertices)] \
+                         [next(self.building_file).split() for v in range(vertices)] \
                          ]).reshape(vertices, 2)
         self.building_vertices[(name, story)] = point(vertices, XYs=vs)
     
@@ -483,7 +303,7 @@ class post:
             ,datatype_doc
             ,receptors_doc
             ,dataformat_doc
-            ] = [self.POSTfile.next() for i in range(6)]
+            ] = [next(self.POSTfile) for i in range(6)]
             
         except:
             raise Exception("POST file does not contain proper header metadata")
@@ -522,8 +342,8 @@ class post:
         
     def getPOSTfileHeader(self):
         """Get metadata from POSTfile"""
-        self.fileheader = self.POSTfile.next().strip()
-        self.POSTfile.next() # -------- line
+        self.fileheader = next(self.POSTfile).strip()
+        next(self.POSTfile) # -------- line
         
     def printResults(self, filename, r_type, **kwargs):
         """print(r_type results data array to outfile as comma separated values)"""
@@ -585,7 +405,7 @@ class post:
                 self.POSTdata[self.datatypes[-1]] = numpy.expand_dims(self.POSTdata[self.datatypes[-1]], axis=2)
         
         for r in range(self.receptors.num):
-            line = self.POSTfile.next()
+            line = next(self.POSTfile)
             
             # decode data
             data4hour, dt = self.decode_data(line)
@@ -619,20 +439,36 @@ class post:
     def draw_building(self
                      ,building
                      ,story
-                     ,plot
+                     ,axis
                      ,origin=point(1,Xs=[0],Ys=[0])
                      ,**kwargs
                      ):
+        
+        import matplotlib.patches as patches
+        from matplotlib.path import Path
+        
         """method for drawing buildings"""
-        plot.fill(self.building_vertices[(building, story)].X - origin.X
-                 ,self.building_vertices[(building, story)].Y - origin.Y
-                 ,color=kwargs.get("color", "white")
-                 ,linewidth=kwargs.get("linewidth", 0.4)
-                 ,alpha=kwargs.get("alpha", 1.00)
-                 ,ec="black"
-                 )
+        
+        # create polygon using path method
+        verts = [(x-origin.X, y-origin.Y) \
+                 for (x, y)              \
+                 in zip(self.building_vertices[(building, story)].X
+                       ,self.building_vertices[(building, story)].Y
+                       )]
+        verts.append(verts[0])  # add first point to close polygon
+        codes     = [Path.LINETO for coords in verts]
+        codes[0]  = Path.MOVETO
+        codes[-1] = Path.CLOSEPOLY
+        path = Path(verts, codes)
+        patch = patches.PathPatch(path
+                                 ,facecolor=kwargs.get("color", "white")
+                                 ,edgecolor='black'
+                                 ,linewidth=kwargs.get("linewidth", 0.4)
+                                 ,alpha=kwargs.get("alpha", 1.00)
+                                 )
+        axis.add_patch(patch)
         if kwargs.get("building_name", False) and (story == 1):
-            plot.annotate(str(building)
+            axis.annotate(str(building)
                          ,xy=((self.building_vertices[(building, story)].X - origin.X).mean()
                              ,(self.building_vertices[(building, story)].Y - origin.Y).mean())
                          ,va="center"
@@ -738,11 +574,6 @@ class post:
         xi = numpy.linspace(receptors.X.min(), receptors.X.max(), round(receptors.num**0.85))
         yi = numpy.linspace(receptors.Y.min(), receptors.Y.max(), round(receptors.num**0.85))
         
-        if kwargs.get("colorslevels", None):
-            levels = [level for level, color, label in kwargs["colorslevels"]]
-            kwargs["levels"] = levels
-            kwargs["contour_colors"] = [color for level, color, label in kwargs["colorslevels"]]
-        
         distance_from_origin = kwargs.get("distance_from_origin", max(x_range/2, y_range/2))
         if self.DEBUG: print("DEBUG: distance_from_origin -", distance_from_origin)
         
@@ -751,66 +582,86 @@ class post:
         origin.Y = (receptors.Y.max() + receptors.Y.min())/2
         
         # instantiate figure
-        if kwargs.get("nocolorbar", False):
-            plt.figure(num=None, figsize=(6.5, 6), dpi=80, facecolor='w', edgecolor='k')
-        else:
-            plt.figure(num=None, figsize=(8, 6), dpi=80, facecolor='w', edgecolor='k')
+        figure = plt.figure(num=None
+                           ,figsize=(6.5, 6) if kwargs.get("nocolorbar", False) else (8, 6)
+                           ,dpi=80
+                           ,facecolor="white"
+                           ,edgecolor="black"
+                           )
+        ax = figure.add_subplot(111
+                               ,aspect="equal"
+                               )
         
         # grid the data.
-        
         zi = griddata((receptors.X - origin.X, receptors.Y - origin.Y)
                      ,concs
                      ,(xi[None,:] - origin.X, yi[:,None] - origin.Y)
                      ,method=kwargs.get("interpolation_method", "linear")
                      )
         
-        if kwargs.get("contours", 0):
-            CS = plt.contour(xi - origin.X, yi - origin.Y, zi
-                            ,len(levels)+1
-                            ,linewidths=float(kwargs.get("contours", 0))
-                            ,colors='black'
-                            ,levels=levels
-                            )
+        # define contour levels and colors
+        if kwargs.get("colorslevels", None):
+            levels = [level for level, color, label in kwargs["colorslevels"]]
+            kwargs["levels"] = levels
+            kwargs["contour_colors"] = [color for level, color, label in kwargs["colorslevels"]]
+        
+        # draw the contours using contour(X,Y,Z,V) formulation (see documentation)
+        CS = plt.contour(xi - origin.X  # X
+                        ,yi - origin.Y  # Y
+                        ,zi             # Z
+                        ,levels         # V
+                        ,linewidths=float(kwargs.get("contours", 0))
+                        ,colors="black"
+                        )
+        
+        # fill the contours
         if kwargs.get("contour_colors", None):
-            CS = plt.contourf(xi - origin.X, yi - origin.Y, zi
-                             ,len(levels)+1
-                             ,colors=kwargs["contour_colors"]
-                             ,levels=levels)
+            cmap, norm = matplotlib.colors.from_levels_and_colors(levels=levels
+                                                                 ,colors=kwargs.get("contour_colors", ["white" for level in levels])[:-1]
+                                                                 ,extend="neither"
+                                                                 )
         else:
-            CS = plt.contourf(xi - origin.X, yi - origin.Y, zi
-                             ,len(levels)+1
-                             ,cmap=plt.cm.hot_r
-                             ,levels=levels)
-        CS.ax.set_aspect(1)
+            cmap = plt.cm.hot_r
+            norm = matplotlib.colors.Normalize(vmin=0, vmax=1)
         
-#         if "hour" in self.vars_index and rank == 1:
-#             plt.text(1.0
-#                     ,1.012
-#                     ,self.datetimes[kwargs.get("slice", 0)].strftime("%Y-%m-%d %H:00")
-#                     ,horizontalalignment='right'
-#                     ,verticalalignment='bottom'
-#                     ,transform=CS.ax.transAxes
-#                     ,fontsize=kwargs.get("labelsize", 10)
-#                     ,color="#333333"
-#                     )
-#         
+        CS = plt.contourf(xi - origin.X
+                         ,yi - origin.Y
+                         ,zi
+                         ,levels
+                         ,cmap=cmap
+                         ,norm=norm
+                         )
         
+        # prepare the colorbar
         if not kwargs.get("nocolorbar", False):
             matplotlib.rcParams['xtick.direction'] = 'out'
             matplotlib.rcParams['ytick.direction'] = 'out'
-            colorbar = plt.colorbar(format=kwargs.get("scale_decimals", "%0.1f")
-                                   ,spacing=kwargs.get("colorbar_spacing", "proportional")
-                                   ,ticks=levels
-                                   )
-            
-            colorbar.ax.tick_params(labelsize=kwargs.get("labelsize", 10))
             
             if kwargs.get("colorslevels", False):
                 if self.DEBUG: print("DEBUG: setting colorbar labels")
                 labels = [label for level, color, label in kwargs.get("colorslevels", False)]
-                if kwargs.get("pollutant", None):
-                    labels[-1] += " " + pollutant_dict[kwargs["pollutant"]][1]
-                colorbar.set_ticklabels(labels)
+            else:
+                labels = ["" for level in levels]
+            
+            colorbar = figure.colorbar(CS
+                                      ,ax=ax
+                                      ,format=kwargs.get("scale_decimals", "%0.1f")
+                                      ,spacing=kwargs.get("colorbar_spacing", "proportional")
+                                      ,shrink=1.0 # same size as map
+                                      )
+            
+            display_units = pollutant_dict[kwargs["pollutant"]][1]
+            colorbar.set_label("Concentration (%s)" %display_units
+                              ,size=kwargs.get("max_textsize", 10)
+                              )
+            
+            colorbar.set_ticks(levels)
+            colorbar.set_ticklabels(labels)
+            colorbar.ax.tick_params(labelsize=kwargs.get("labelsize", 10)
+                                   ,colors="black"
+                                   ,axis="both"
+                                   ,direction="out"
+                                   )
             
         if kwargs.get("tickinterval", None):
             tickinterval = kwargs.get("tickinterval", 100)
@@ -831,37 +682,33 @@ class post:
             CS.ax.set_yticklabels(aticks)
         else:
             if self.DEBUG: print("DEBUG: ticklabels set")
-            plt.ticklabel_format(axis="both"
+            ax.ticklabel_format(axis="both"
                                 ,style="plain"
                                 ,useOffset=0
                                 )
         # set tick interval
-        plt.xlim(-distance_from_origin, distance_from_origin)
-        plt.ylim(-distance_from_origin, distance_from_origin)
+        ax.set_xlim(-distance_from_origin, distance_from_origin)
+        ax.set_ylim(-distance_from_origin, distance_from_origin)
         
         # format tick marks
-        plt.tick_params(direction="out"
-                       ,length=4
-                       ,color="grey"
-                       ,width=1
-                       ,pad=kwargs.get("labelgap",4)
-                       ,labelsize=kwargs.get("labelsize", 10)
-                       )
-        
-        # remove tick marks
-        if kwargs.get("noticks", False):
-            plt.xticks([])
-            plt.yticks([])
+        ax.tick_params(axis="both"
+                      ,direction="out"
+                      ,length=0 if kwargs.get("noticks", False) else 4 # default tick length is 4. Can be omitted if requested using noticks option
+                      ,color="grey"
+                      ,width=1
+                      ,pad=kwargs.get("labelgap",4)
+                      ,labelsize=kwargs.get("labelsize", 10)
+                      )
         
         # plot data points.
         if kwargs.get("receptor_size", 12):
-            scat = plt.scatter(receptors.X - origin.X
-                              ,receptors.Y - origin.Y
-                              ,marker=kwargs.get("receptor_type", "o")
-                              ,c=(1,1,1,0) # in place of marker_style which I can't get to work
-                              ,s=kwargs.get("receptor_size", 12)
-                              ,zorder=10
-                              )
+            scat = ax.scatter(receptors.X - origin.X
+                             ,receptors.Y - origin.Y
+                             ,marker=kwargs.get("receptor_type", "o")
+                             ,c=(1,1,1,0) # in place of marker_style which I can't get to work
+                             ,s=kwargs.get("receptor_size", 12)
+                             ,zorder=10
+                             )
         if kwargs.get("max_plot", True):
             max_point = point(1
                              ,Xs=numpy.array([receptors.X[concs.argmax()] - origin.X])
@@ -872,33 +719,33 @@ class post:
                 print("    X =", max_point.X[0])
                 print("    Y =", max_point.Y[0])
                 print("    c =", concs.max())
-            plt.annotate('+ Maximum Concentration: '+ kwargs.get("scale_decimals","%0.0f") % concs.max()
-                        ,(0.5, 0)
-                        ,(0, -40 + (kwargs.get("max_textsize", 10)))
-                        ,xycoords='axes fraction'
-                        ,ha="center"
-                        ,va="top"
-                        ,textcoords='offset points'
-                        ,size=kwargs.get("max_textsize", 10)
-                        )
-                
-            plt.scatter(max_point.X
-                       ,max_point.Y
-                       ,marker="+"
-                       ,c=(0,0,0) # in place of marker_style which I can't get to work
-                       ,s=kwargs.get("max_plot", 50)
-                       ,zorder=10
+            ax.annotate('+ Maximum Concentration: '+ kwargs.get("scale_decimals","%0.0f") % concs.max()
+                       ,(0.5, 0)
+                       ,(0, -40 + (kwargs.get("max_textsize", 10)))
+                       ,xycoords='axes fraction'
+                       ,ha="center"
+                       ,va="top"
+                       ,textcoords='offset points'
+                       ,size=kwargs.get("max_textsize", 10)
                        )
+                
+            ax.scatter(max_point.X
+                      ,max_point.Y
+                      ,marker="+"
+                      ,c=(0,0,0) # in place of marker_style which I can't get to work
+                      ,s=kwargs.get("max_plot", 50)
+                      ,zorder=10
+                      )
         if kwargs.get("add_background", False):
-            plt.annotate('Includes background\nconcentration: '+ kwargs.get("scale_decimals","%0.0f") % kwargs.get("add_background", 0.0)
-                        ,(1.05, 0)
-                        ,(0, -32 + (kwargs.get("max_textsize", 10)))
-                        ,xycoords='axes fraction'
-                        ,ha="left"
-                        ,va="top"
-                        ,textcoords='offset points'
-                        ,size=kwargs.get("max_textsize", 10)
-                        )
+            ax.annotate('Includes background\nconcentration: '+ kwargs.get("scale_decimals","%0.0f") % kwargs.get("add_background", 0.0)
+                       ,(1.05, 0)
+                       ,(0, -32 + (kwargs.get("max_textsize", 10)))
+                       ,xycoords='axes fraction'
+                       ,ha="left"
+                       ,va="top"
+                       ,textcoords='offset points'
+                       ,size=kwargs.get("max_textsize", 10)
+                       )
             
         if kwargs.get("transparent_buildings", False):
             if self.DEBUG: print("DEBUG: transparent buildings")
@@ -907,7 +754,7 @@ class post:
             building_color = "white"
         if kwargs.get("buildings", False):
             for name, story in sorted(self.building_vertices.keys()):
-                self.draw_building(name, story, plt, origin=origin
+                self.draw_building(name, story, ax, origin=origin
                                   ,color=kwargs.get("building_color", building_color)
                                   ,linewidth=kwargs.get("building_linewidth", 0.4)
                                   ,building_name=kwargs.get("building_name", False)
@@ -917,27 +764,30 @@ class post:
                 for name, source in self.sources.items():
                     if self.DEBUG: 
                         print("DEBUG: source:", name, source.X, source.Y)
-                        plt.scatter(source.X - origin.X
-                                   ,source.Y - origin.Y
-                                   ,marker="o"
-                                   ,c=(0,0,0) 
-                                   ,s=kwargs.get("sources", 10)
-                                   ,zorder=10
-                                   )
+                        ax.scatter(source.X - origin.X
+                                  ,source.Y - origin.Y
+                                  ,marker="o"
+                                  ,c=(0,0,0) 
+                                  ,s=kwargs.get("sources", 10)
+                                  ,zorder=10
+                                  )
         
-        plt.title(pollutant_dict[kwargs.get("pollutant", "PM2.5")][0] + " " + \
-                  ("" if r_form is "CONCURRENT" else r_type )+ "\n" + \
-                  ("%s HIGHEST " %(ordinal(rank)) if rank else "")  + \
-                  ("HOURLY" if (r_form == "CONCURRENT") else r_form)
-                 ,size=kwargs.get("title_size", 10)
-                 ,ha="left"
-                 ,position=(0.05,1.012)
-                 )
-        plt.figtext(0.6,0.95
-                 ,"SOURCE(S): "+source_group
-                 ,size=kwargs.get("title_size", 10)
-                 ,ha="left"
-                 )
+        ax.set_title(pollutant_dict[kwargs.get("pollutant", "PM2.5")][0] + " " + \
+                     ("" if r_form is "CONCURRENT" else r_type )+ "\n" + \
+                     ("%s HIGHEST " %(ordinal(rank)) if rank else "")  + \
+                     ("HOURLY" if (r_form == "CONCURRENT") else r_form)
+                    ,size=kwargs.get("title_size", 10)
+                    ,loc="left"
+                    ,ha="left"
+                    ,position=(0.05,1.012)
+                    )
+        
+        ax.set_title("SOURCE(S): \n"+source_group
+                    ,size=kwargs.get("title_size", 10)
+                    ,loc="right"
+                    ,ha="left"
+                    ,position=(0.75,1.012)
+                    )
         
         plt.savefig(kwargs.get("filename", "aermod.png"))
         plt.close("all")
