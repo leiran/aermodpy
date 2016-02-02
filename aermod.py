@@ -237,21 +237,32 @@ class post:
             num_srcs = int(next(self.building_file))
             for src in range(num_srcs):
                 try:
-                    name, trash, elev, height, x, y = next(self.building_file).split()
-                    name = name.strip().replace("'","")
+                    raw_source_line = next(self.building_file).strip()
+                    source_descriptors = raw_source_line.replace("'", "").split(sep=None, maxsplit=5)
+                    if len(source_descriptors) == 5:
+                        name, elev, height, x, y = source_descriptors
+                    else:
+                        trash, elev, height, x, y, name = source_descriptors
+                    name = name.strip()
                     if self.DEBUG: print("DEBUG: source name:", name, x, y)
                     self.sources[(name)] = \
                         point(1, Xs=numpy.array(float(x))
                                , Ys=numpy.array(float(y))
                                )
-                    if self.DEBUG: print("DEBUG: source:", self.sources[(name)].X, self.sources[(name)].Y)
+                    if self.verbose: print("adding source:", self.sources[(name)].X, self.sources[(name)].Y)
                 except:
                     raise Exception("No more sources to process")
     
     def building_header(self):
         """get building data for new building"""
-        name_padded, stories, base_elevation = next(self.building_file).split()
-        return name_padded.replace("'",""), int(stories), float(base_elevation)
+        building_descriptors = next(self.building_file).split(sep=None, maxsplit=3)
+        if len(building_descriptors) == 3:
+           name_padded, stories, base_elevation = building_descriptors
+        else:
+           trash, stories, base_elevation, name_padded = building_descriptors
+        if self.verbose: print("adding building: ", name_padded.strip(), stories, base_elevation)
+        
+        return name_padded.strip().replace("'",""), int(stories), float(base_elevation)
     
     def process_building(self
                         ,name
@@ -760,17 +771,18 @@ class post:
                                   ,building_name=kwargs.get("building_name", False)
                                   )
         
-            if kwargs.get("sources", False):
-                for name, source in self.sources.items():
-                    if self.DEBUG: 
-                        print("DEBUG: source:", name, source.X, source.Y)
-                        ax.scatter(source.X - origin.X
-                                  ,source.Y - origin.Y
-                                  ,marker="o"
-                                  ,c=(0,0,0) 
-                                  ,s=kwargs.get("sources", 10)
-                                  ,zorder=10
-                                  )
+        if kwargs.get("sources", False):
+            for name, source in self.sources.items():
+                if self.DEBUG: 
+                    print("DEBUG: source:", name, source.X, source.Y)
+                ax.scatter(source.X - origin.X
+                          ,source.Y - origin.Y
+                          ,marker="o"
+                          ,c=(0,0,0) 
+                          ,s=kwargs.get("sources", 10)
+                          ,zorder=10
+                          )
+            if self.DEBUG: print("DEBUG: sources successfully plotted")
         
         ax.set_title(pollutant_dict[kwargs.get("pollutant", "PM2.5")][0] + " " + \
                      ("" if r_form is "CONCURRENT" else r_type )+ "\n" + \
