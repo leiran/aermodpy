@@ -21,7 +21,6 @@ __status__ = "Production"
 # import statements
 import os.path
 import datetime
-import calendar
 import numpy
 import csv
 
@@ -545,9 +544,9 @@ class post:
         annual - POSTdata has annual values (default=False)
         """
         import matplotlib
-        import matplotlib.ticker
         import matplotlib.pyplot as plt
-        from scipy.interpolate import griddata
+        #from scipy.interpolate import griddata
+        from matplotlib.mlab import griddata
         
         if kwargs.get("exclude_flagpole_receptors", False):
             if self.DEBUG: print("DEBUG: removing flagpole receptors")
