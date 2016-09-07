@@ -1,10 +1,10 @@
 #!/usr/bin/env python
-"""default color dictionaries for aermodpy
+"""default dictionaries for aermodpy
 
 developed for python 3.x
 """
 
-
+# supporting dictionaries
 color_dicts = {
  "post" :    ((   0, "#FFFFFF", "    0")
              ,( 250, "#FFFF99", "")
@@ -183,3 +183,95 @@ color_dicts = {
              ,( 9.5, "#FFB347", " 9.5 AQI=USG")
              )
               }
+
+pollutant_dict = {"PM2.5" : (r'$\mathregular{PM_{2.5}}$', r'$\mu\mathregular{g/m^3}$')
+                 ,"CO"    : ("Carbon Monoxide", "ppm")
+                 ,"NO2"   : (r'$\mathregular{NO_{2}}$', "ppb")
+                 ,"SO2"   : (r'$\mathregular{SO_{2}}$', "ppb")
+                 }
+
+vars_indices = {
+    
+    "post" : 
+           {"x"    : {"start":  0, "end": 14, "type": float}
+           ,"y"    : {"start": 15, "end": 28, "type": float}
+           ,"conc" : {"start": 29, "end": 42, "type": float}
+           ,"z"    : {"start": 43, "end": 51, "type": float}
+           ,"zhill": {"start": 52, "end": 60, "type": float}
+           ,"zflag": {"start": 61, "end": 69, "type": float}
+           ,"ave"  : {"start": 70, "end": 77, "type": str  }
+           ,"group": {"start": 78, "end": 87, "type": str  }
+           ,"netid": {"start": 98, "end":107, "type": str  }
+           ,"year" : {"start": 89, "end": 91, "type": int  }
+           ,"month": {"start": 91, "end": 93, "type": int  }
+           ,"day"  : {"start": 93, "end": 95, "type": int  }
+           ,"hour" : {"start": 95, "end": 97, "type": int  }
+           }
+   ,"grf"  : 
+           {"x"    : {"start":  0, "end": 14, "type": float}
+           ,"y"    : {"start": 15, "end": 28, "type": float}
+           ,"conc" : {"start": 29, "end": 42, "type": float}
+           ,"z"    : {"start": 43, "end": 51, "type": float}
+           ,"zhill": {"start": 52, "end": 60, "type": float}
+           ,"zflag": {"start": 61, "end": 69, "type": float}
+           ,"ave"  : {"start": 70, "end": 77, "type": str  }
+           ,"group": {"start": 78, "end": 87, "type": str  }
+           ,"n_yrs": {"start": 88, "end": 97, "type": int  }
+           ,"netid": {"start": 98, "end":107, "type": str  }
+           }
+
+               }
+
+#functions
+def ordinal(value):
+    """
+    Converts zero or a *postive* integer (or their string 
+    representations) to an ordinal value.
+    
+    from: http://code.activestate.com/recipes/576888-format-a-number-as-an-ordinal/
+    
+    >>> for i in range(1,13):
+    ...     ordinal(i)
+    ...     
+    u'1st'
+    u'2nd'
+    u'3rd'
+    u'4th'
+    u'5th'
+    u'6th'
+    u'7th'
+    u'8th'
+    u'9th'
+    u'10th'
+    u'11th'
+    u'12th'
+    
+    >>> for i in (100, '111', '112',1011):
+    ...     ordinal(i)
+    ...     
+    u'100th'
+    u'111th'
+    u'112th'
+    u'1011th'
+    
+    """
+    try:
+        value = int(value)
+    except ValueError:
+        return value
+
+    if value % 100//10 != 1:
+        if value % 10 == 1:
+            ordval = u"%d%s" % (value, "st")
+        elif value % 10 == 2:
+            ordval = u"%d%s" % (value, "nd")
+        elif value % 10 == 3:
+            ordval = u"%d%s" % (value, "rd")
+        else:
+            ordval = u"%d%s" % (value, "th")
+    else:
+        ordval = u"%d%s" % (value, "th")
+
+    return ordval
+
+

@@ -1,13 +1,13 @@
 if __name__ == "__main__":
     
     from aermodpy.aermod import *
-    from aermodpy.color_dicts import color_dicts
+    from aermodpy.support import color_dicts
     
     directory = "."
     buildings=True
     
     #building_fn = "SUNYESF_RSG_Modified.PIP"
-    #directory = "../modeling output"
+    directory = "../data"
     building_fn = "SUNYESF_final.PIP"
     filename  = "SUNYESF_1HR_NO2.GRF"
     vars = "grf"
@@ -18,9 +18,9 @@ if __name__ == "__main__":
     # options
     options = {"colorslevels" : color_dicts[c_vars]
               #,"colorbar_spacing" : "uniform"
-              #,"interpolation_method" : "nearest"
+              #,"interpolation_method" : "nn"      # "linear" or "nn" (nearest neighbor)
+              #,"interpolation_method" : "linear"  # "linear" or "nn" (nearest neighbor)
               #,"contours" : 0.05
-              ,"interpolation_method" : "cubic"
               ,"scalar" : 0.53163211057948 #inverse of 1.881
               ,"pollutant" : pollutant
               
@@ -50,7 +50,7 @@ if __name__ == "__main__":
             ,directory=directory
             ,vars_index=vars_indices[vars]
             ,verbose=True
-            ,DEBUG=True
+            ,DEBUG=False
             )
     print("--> successful file import:", filename)
     
