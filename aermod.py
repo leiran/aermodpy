@@ -516,11 +516,14 @@ class post:
                                )
         
         # grid the data.
+        if self.DEBUG: print("DEBUG: receptors.X:", type(receptors.X), receptors.X)
+        if self.DEBUG: print("DEBUG: receptors.X:", type(receptors.Y), receptors.Y)
         zi = griddata(receptors.X - origin.X,
                       receptors.Y - origin.Y,
                       concs, 
                       0, 0,
                       interp = kwargs.get("interpolation_method", "linear"))
+        if self.DEBUG: print("DEBUG:", zi)
         
         # define contour levels and colors
         if kwargs.get("colorslevels", None):
